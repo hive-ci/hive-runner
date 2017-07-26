@@ -12,12 +12,12 @@ module Hive
         'HIVE_SCHEDULER' => Hive.config.network.scheduler,
         'HIVE_WORKING_DIRECTORY' => config[:file_system].testbed_path
       }
-      @env_unset = [
-        'BUNDLE_GEMFILE',
-        'BUNDLE_BIN_PATH',
-        'GEM_PATH',
-        'RUBYOPT',
-        'rvm_'
+      @env_unset = %w[
+        BUNDLE_GEMFILE
+        BUNDLE_BIN_PATH
+        GEM_PATH
+        RUBYOPT
+        rvm_
       ]
       # Environment variables that should not be made visible in the execution
       # script uploaded with the results
@@ -40,13 +40,13 @@ module Hive
     def set_env(var, value)
       @env[var] = value
 
-      # TODO What if the element appears multiple times?
+      # TODO: What if the element appears multiple times?
       if (i = @env_unset.index(var))
         @env_unset.delete(i)
       end
 
       ## In Ruby 2, replace the above 'if' block with ...
-      #@env_unset.remove(var)
+      # @env_unset.remove(var)
     end
 
     def unset_env(var)
@@ -57,9 +57,9 @@ module Hive
     def get_env(var)
       @env[var]
     end
-    
+
     def helper_path
-      scripts_dir = File.expand_path(File.dirname(__FILE__) + "../../../scripts/")
+      scripts_dir = File.expand_path(File.dirname(__FILE__) + '../../../scripts/')
       File.join(scripts_dir, 'hive-script-helper.sh')
     end
 
@@ -71,8 +71,8 @@ module Hive
         f.write("# Set environment\n")
         @env.each do |key, value|
           # An escaped ' in a single quoted string in bash looks like '"'"'
-          if value.kind_of?(Array)
-            f.write("export #{key}=(" + value.collect { |v| "'#{v.to_s.gsub("'", '\'"\'"\'')}'" }.join(' ') + ")\n" )
+          if value.is_a?(Array)
+            f.write("export #{key}=(" + value.collect { |v| "'#{v.to_s.gsub("'", '\'"\'"\'')}'" }.join(' ') + ")\n")
           else
             f.write("export #{key}='#{value.to_s.gsub("'", '\'"\'"\'')}'\n")
           end
@@ -80,13 +80,13 @@ module Hive
         @env_unset.each do |var|
           f.write("unset #{var}\n")
         end
-        f.write("cd $HIVE_WORKING_DIRECTORY")
+        f.write('cd $HIVE_WORKING_DIRECTORY')
         f.write("\n# Test execution\n")
         f.write(@script_lines.join("\n"))
       end
-      File.chmod(0700, @path)
+      File.chmod(0o700, @path)
 
-      pid = Process.spawn @env_secure, "#{@path}", pgroup: true, in: '/dev/null', out: "#{@log_path}/stdout.log", err: "#{@log_path}/stderr.log"
+      pid = Process.spawn @env_secure, @path.to_s, pgroup: true, in: '/dev/null', out: "#{@log_path}/stdout.log", err: "#{@log_path}/stderr.log"
       @pgid = Process.getpgid(pid)
 
       exit_value = nil
@@ -95,16 +95,16 @@ module Hive
         begin
           Timeout.timeout(30) do
             Process.wait pid
-            exit_value = $?.exitstatus
+            exit_value = $CHILD_STATUS.exitstatus
             running = false
           end
         rescue Timeout::Error
-          @log.debug("Sub-process keep_running check")
-          if ! ( @keep_running.nil? || @keep_running.call )
+          @log.debug('Sub-process keep_running check')
+          unless @keep_running.nil? || @keep_running.call
             Process.kill(-9, @pgid)
-            raise "Script terminated. Check worker logs for more details"
+            raise 'Script terminated. Check worker logs for more details'
           end
-          # TODO Upload in-progress script logs
+          # TODO: Upload in-progress script logs
         end
       end
 

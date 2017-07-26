@@ -2,11 +2,11 @@ module Hive
   class DiagnosticRunner
     attr_accessor :diagnostics, :options
 
-    def initialize(options, diagnostics_config, platform, hive_mind=nil)
-      @options = options
-      @platform = platform
-      @hive_mind = hive_mind
-      @diagnostics = self.initialize_diagnostics(diagnostics_config[@platform]) if diagnostics_config.has_key?(@platform)
+    def initialize(options, diagnostics_config, platform, hive_mind = nil)
+      @options     = options
+      @platform    = platform
+      @hive_mind   = hive_mind
+      @diagnostics = initialize_diagnostics(diagnostics_config[@platform]) if diagnostics_config.key?(@platform)
     end
 
     def initialize_diagnostics(diagnostics_config)
@@ -19,14 +19,12 @@ module Hive
       else
         Hive.logger.info("No diagnostic specified for #{@platform}")
       end
-    end 
+    end
 
     def run
-      results = @diagnostics.collect do |diagnostic|
-        diagnostic.run
-      end
-     
-      failures = results.select { |r| r.failed? }
+      results = @diagnostics.collect(&:run)
+
+      failures = results.select(&:failed?)
       failures.count == 0
     end
   end

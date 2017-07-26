@@ -13,11 +13,11 @@ module Hive
     #
     def initialize(config)
       @allocated_ports = []
-      if config.has_key?(:minimum) and config.has_key?(:maximum) and config[:minimum] > 0 and config[:minimum] <= config[:maximum]
+      if config.key?(:minimum) && config.key?(:maximum) && config[:minimum] > 0 && config[:minimum] <= (config[:maximum])
         @free_ports = Array(config[:minimum]..config[:maximum])
-      elsif config.has_key?(:ports) and config[:ports].is_a? Array
+      elsif config.key?(:ports) && config[:ports].is_a?(Array)
         config[:ports].each do |p|
-          raise ArgumentError if ! p.is_a? Integer or p <= 0
+          raise ArgumentError if !p.is_a?(Integer) || p <= 0
         end
         @free_ports = config[:ports]
       else
@@ -61,7 +61,7 @@ module Hive
     def release_port_range(range)
       if range.ports - @allocated_ports == []
         @free_ports.concat(range.ports)
-        @allocated_ports = @allocated_ports - range.ports
+        @allocated_ports -= range.ports
       end
     end
 

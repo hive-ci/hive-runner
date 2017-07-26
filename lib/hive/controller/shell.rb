@@ -15,7 +15,7 @@ module Hive
         Hive.logger.info('Creating shell devices')
         (1..@workers).collect do |i|
           Hive.logger.info("  Shell device #{i}")
-          self.create_device('id' => i)
+          create_device('id' => i)
         end
       end
     end

@@ -12,11 +12,11 @@ module Hive
     def initialize(options)
       @worker_pid = nil
       @options = options
-      @port_allocator = options['port_allocator'] or Hive::PortAllocator.new(ports: [])
-      @status = @options.has_key?('status') ? @options['status'] : 'none'
+      (@port_allocator = options['port_allocator']) || Hive::PortAllocator.new(ports: [])
+      @status = @options.key?('status') ? @options['status'] : 'none'
       @worker_class = self.class.to_s.sub('Device', 'Worker')
       require @worker_class.downcase.gsub(/::/, '/')
-      raise ArgumentError, "Identity not set for #{self.class} device" if ! @identity
+      raise ArgumentError, "Identity not set for #{self.class} device" unless @identity
     end
 
     # Start the worker process
@@ -25,7 +25,7 @@ module Hive
       @worker_pid = Process.fork do
         object = Object
         @worker_class.split('::').each { |sub| object = object.const_get(sub) }
-        object.new(@options.merge('parent_pid' => parent_pid, 'device_identity' => self.identity, 'port_allocator' => self.port_allocator, 'hive_id' => Hive.hive_mind.device_details['id']))
+        object.new(@options.merge('parent_pid' => parent_pid, 'device_identity' => identity, 'port_allocator' => port_allocator, 'hive_id' => Hive.hive_mind.device_details['id']))
       end
       Process.detach @worker_pid
 
@@ -36,23 +36,23 @@ module Hive
     def stop
       protect_file = File.expand_path("#{@worker_pid}.protect", PIDS_DIRECTORY)
       Hive.logger.debug("Checking for protected file: #{protect_file}")
-      if File.exists? File.expand_path("#{@worker_pid}.protect", PIDS_DIRECTORY)
+      if File.exist? File.expand_path("#{@worker_pid}.protect", PIDS_DIRECTORY)
         Hive.logger.debug("PID #{@worker_pid} is protected")
         false
       else
         @stop_count = @stop_count.nil? ? 0 : @stop_count + 1
 
-        if self.running?
+        if running?
           if @stop_count < 30
             Hive.logger.info("Attempting to terminate process #{@worker_pid} [#{@stop_count}]")
             Process.kill 'TERM', @worker_pid
           else
             Hive.logger.info("Killing process #{@worker_pid}")
-            Process.kill 'KILL', @worker_pid if self.running?
+            Process.kill 'KILL', @worker_pid if running?
           end
         end
 
-        if self.running?
+        if running?
           false
         else
           @worker_pid = nil
@@ -78,7 +78,7 @@ module Hive
 
     # Return the worker pid, checking to see if it is running first
     def worker_pid
-      @worker_pid = nil if ! self.running?
+      @worker_pid = nil unless running?
       @worker_pid
     end
 
@@ -90,7 +90,7 @@ module Hive
 
     # Test equality with another device
     def ==(other)
-      self.identity == other.identity
+      identity == other.identity
     end
 
     # Return the unique identity of the device

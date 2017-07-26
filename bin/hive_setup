@@ -5,30 +5,30 @@ require 'fileutils'
 require 'terminal-table'
 require 'etc'
 
-if ARGV.length < 1
-  puts "Usage:"
+if ARGV.empty?
+  puts 'Usage:'
   puts
-  puts "  hive_setup <directory>"
+  puts '  hive_setup <directory>'
   exit 1
 end
 
-headless = ARGV.include?("--ni")
+headless = ARGV.include?('--ni')
 
 dir = File.expand_path('', ARGV[0])
-if Dir.exists?(dir)
-  if ! Dir["#{dir}/*"].empty?
+if Dir.exist?(dir)
+  unless Dir["#{dir}/*"].empty?
     puts "Directory '#{dir}' exists and is not empty"
     exit 1
   end
 else
-  if File.exists?(dir)
+  if File.exist?(dir)
     puts "'#{dir}' exists and is not a directory"
     exit 1
   end
   FileUtils.mkdir_p(dir)
 end
 
-def yn question
+def yn(question)
   yn = 'x'
   while yn !~ /^[yYnN]/
     print "#{question}(y/n) "
@@ -49,14 +49,14 @@ def os
   end
 end
 
-def find_ruby use_default = false
+def find_ruby(use_default = false)
   ruby_versions = []
 
   manager = nil
-  if system("which rvm > /dev/null 2> /dev/null")
+  if system('which rvm > /dev/null 2> /dev/null')
     list = `rvm list`.split /\n/
     match = /^.(.).(ruby-\S+)/
-  elsif system("which rbenv > /dev/null 2> /dev/null")
+  elsif system('which rbenv > /dev/null 2> /dev/null')
     list = `rbenv versions`.split /\n/
     match = /^(.).(\S+)/
   else
@@ -66,21 +66,20 @@ def find_ruby use_default = false
   version_table = Terminal::Table.new headings: ['#', 'Version', '']
   default = nil
   list.each do |line|
-    if line =~ match
-      default = ruby_versions.length if $1 == '*'
-      ruby_versions << $2
-      version_table.add_row [ ruby_versions.length, $2, $1 == '*' ? 'Default' : '' ]
-    end
+    next unless line =~ match
+    default = ruby_versions.length if Regexp.last_match(1) == '*'
+    ruby_versions << Regexp.last_match(2)
+    version_table.add_row [ruby_versions.length, Regexp.last_match(2), Regexp.last_match(1) == '*' ? 'Default' : '']
   end
 
-  if ruby_versions.length == 0
-    [ 'system', 0 ]
+  if ruby_versions.empty?
+    ['system', 0]
   elsif ruby_versions.length == 1
-    [ ruby_versions[0], 1 ]
-  elsif use_default && ! default.nil?
-    [ ruby_versions[default], ruby_versions.length ]
+    [ruby_versions[0], 1]
+  elsif use_default && !default.nil?
+    [ruby_versions[default], ruby_versions.length]
   else
-    puts
+    puts ''
     puts 'Multiple ruby versions available:'
     puts version_table
     puts ''
@@ -89,7 +88,7 @@ def find_ruby use_default = false
       print "[1 - #{ruby_versions.length}] > "
       opt = STDIN.gets.chomp.to_i
     end
-    [ ruby_versions[opt-1], ruby_versions.length ]
+    [ruby_versions[opt - 1], ruby_versions.length]
   end
 end
 
@@ -100,13 +99,13 @@ def gather_options
   ruby, nrubies = find_ruby true
   daemons = false
 
-  while opt.upcase != 'X'
-    table = Terminal::Table.new headings: ['Device', 'Module', 'Source']
+  until opt.casecmp('X').zero?
+    table = Terminal::Table.new headings: %w[Device Module Source]
     mods.each do |mod|
       table.add_row [
         mod[:device],
         mod[:name],
-        mod.has_key?(:git_account) ?
+        mod.key?(:git_account) ?
           "git@github.com:#{mod[:git_account]}/#{mod[:name]}" :
           "https://rubygems.org/gems/#{mod[:name]}"
       ]
@@ -123,30 +122,28 @@ def gather_options
     puts '1) Add module'
     puts '2) Change ruby version'
     if os != 'Unknown'
-      puts "3) #{ daemons ? 'Do not s' : 'S'}et up daemon script (experimental)"
+      puts "3) #{daemons ? 'Do not s' : 'S'}et up daemon script (experimental)"
     end
     puts 'X) Continue'
     puts ''
-    print "> "
+    print '> '
     opt = STDIN.gets.chomp
 
     case opt
     when '1'
       mod = {}
       puts ''
-      print "Module name: "
+      print 'Module name: '
       mod[:device] = STDIN.gets.chomp
       mod[:name] = "hive-runner-#{mod[:device]}"
       puts ''
 
       puts "Module '#{mod[:name]}' from https://rubygems.org/gems/#{mod[:name]}"
-      if yn "Correct? "
-        mods << mod
-      end
+      mods << mod if yn 'Correct? '
     when '2'
       ruby, nrubies = find_ruby
     when '3'
-      daemons = ! daemons if os != 'Unknown'
+      daemons = !daemons if os != 'Unknown'
     end
   end
 
@@ -170,7 +167,7 @@ def setup_hive(options)
 
   File.open("#{dir}/config/settings.yml", 'w') do |f|
     f.puts "#{ENV['HIVE_ENVIRONMENT'] || 'test'}:"
-    f.puts '  daemon_name: HIVE'
+    f.puts "  daemon_name: <%= ENV['HIVE_RUNNER_NAME'] || '#{m[:device].upcase}_HIVE' %>"
     f.puts ''
     f.puts '  controllers:'
     f.puts '    shell:'
@@ -196,12 +193,12 @@ def setup_hive(options)
     f.puts ''
     f.puts '  # Logging configuration'
     f.puts '  logging:'
-    f.puts "    directory: #{dir}/log"
-    f.puts "    pids: #{dir}/pids"
+    f.puts '    directory: <%= Dir.pwd %>/log'
+    f.puts '    pids: <%= Dir.pwd %>/pids'
     f.puts '    main_filename: hive.log'
     f.puts '    main_level: INFO'
     f.puts '    worker_level: INFO'
-    f.puts "    home: #{dir}/workspaces"
+    f.puts '    home: <%= Dir.pwd %>/workspaces'
     f.puts '    homes_to_keep: 5'
     f.puts '    #hm_logs_to_delete: info'
     f.puts ''
@@ -212,8 +209,8 @@ def setup_hive(options)
     f.puts ''
     f.puts '  # Configuration for various network options'
     f.puts '  network:'
-    f.puts '    scheduler: http://localhost:3000'
-    f.puts '    #hive_mind: http://localhost:3001'
+    f.puts "    scheduler: <%= ENV['HIVE_CI_URL'] || 'http://localhost:3000' %>"
+    f.puts "    hive_mind: <%= ENV['HIVE_MIND_URL'] || 'http://localhost:3001' %>"
     f.puts '    # Optional cert paths:'
     f.puts '    # cert: /path/to/certificate.pem'
     f.puts '    # cafile: /path/to/certificate-authorities.pem'
@@ -227,22 +224,22 @@ def setup_hive(options)
 
   File.open("#{dir}/Gemfile", 'w') do |f|
     f.puts "source 'https://rubygems.org/'"
-    f.puts ""
+    f.puts ''
     f.puts "gem 'hive-runner'"
     mods.each do |m|
-      source = m.has_key?(:git_account) ? ", git: 'git@github.com:#{m[:git_account]}/#{m[:name]}'" : ''
+      source = m.key?(:git_account) ? ", git: 'git@github.com:#{m[:git_account]}/#{m[:name]}'" : ''
       f.puts "gem '#{m[:name]}'#{source}"
     end
   end
 
   puts '=========================='
-  print "Setting ruby ... "
+  print 'Setting ruby ... '
   File.open("#{dir}/.ruby-version", 'w') do |rv|
     rv.write ruby
   end
   print "SUCCESS\n"
 
-  print "Creating daemon startup script ... "
+  print 'Creating daemon startup script ... '
   if daemons
     if os == 'Linux'
       startup_script = "#{dir}/hived.init"
@@ -273,20 +270,20 @@ def setup_hive(options)
       end
       print "SUCCESS\n"
 
-      print "Moving daemon startup script ... "
-      if system("sudo cp #{startup_script} /etc/init.d/hived") && system("sudo chmod 755 /etc/init.d/hived") && system("sudo cp #{config_file} /etc/hived.conf")
+      print 'Moving daemon startup script ... '
+      if system("sudo cp #{startup_script} /etc/init.d/hived") && system('sudo chmod 755 /etc/init.d/hived') && system("sudo cp #{config_file} /etc/hived.conf")
         print "SUCCESS\n"
       else
         daemons = false
         print "FAILED\n"
       end
     else
-      #startup_script = '??'
+      # startup_script = '??'
       print "SKIPPED (not available on #{os})\n"
       startup_script = false
       daemons = false
-      #print "FAILED\n"
-      #puts "  Cannot set up daemons for '#{os}'"
+      # print "FAILED\n"
+      # puts "  Cannot set up daemons for '#{os}'"
     end
   else
     print "SKIPPED\n"
@@ -310,7 +307,7 @@ def setup_hive(options)
   puts '      - hive_mind'
   puts '      - cert'
   puts '      - cafile'
-  if mods.length > 0
+  unless mods.empty?
     puts '  * Configure these modules in config/settings.yml'
     mods.each do |m|
       puts "      - #{m[:device]}"
@@ -318,7 +315,7 @@ def setup_hive(options)
   end
   puts '  * Add to ~/.bashrc'
   puts "      - export HIVE_CONFIG=#{dir}/config"
-  if ! daemons
+  unless daemons
     if startup_script
       puts '  * Move daemons startup script to correct location'
       puts "      - File currently at '#{startup_script}'"
@@ -329,7 +326,7 @@ end
 if headless
   options = {
     mods: [],
-    daemons: ( os != 'Unknown' )
+    daemons: (os != 'Unknown')
   }
   options[:ruby], nrubies = find_ruby true
 else

@@ -17,32 +17,32 @@ RSpec.describe Hive::PortAllocator do
 
     context 'creation ports range' do
       it 'fails with missing minimum port' do
-        expect{Hive::PortAllocator.new(maximum: 600)}.to raise_error(ArgumentError)
+        expect { Hive::PortAllocator.new(maximum: 600) }.to raise_error(ArgumentError)
       end
 
       it 'fails with missing maximum port' do
-        expect{Hive::PortAllocator.new(minimum: 500)}.to raise_error(ArgumentError)
+        expect { Hive::PortAllocator.new(minimum: 500) }.to raise_error(ArgumentError)
       end
 
       it 'fails with with maximum port lower than minimum port' do
-        expect{Hive::PortAllocator.new(minimum: 500, maximum: 400)}.to raise_error(ArgumentError)
+        expect { Hive::PortAllocator.new(minimum: 500, maximum: 400) }.to raise_error(ArgumentError)
       end
 
       it 'fails when minimum port is not positive' do
-        expect{Hive::PortAllocator.new(minimum: 0, maximum: 400)}.to raise_error(ArgumentError)
-        expect{Hive::PortAllocator.new(minimum: -100, maximum: 400)}.to raise_error(ArgumentError)
+        expect { Hive::PortAllocator.new(minimum: 0, maximum: 400) }.to raise_error(ArgumentError)
+        expect { Hive::PortAllocator.new(minimum: -100, maximum: 400) }.to raise_error(ArgumentError)
       end
     end
 
     context 'creation with ports array' do
       it 'fails when ports is not an array' do
-        expect{Hive::PortAllocator.new(ports: 500)}.to raise_error(ArgumentError)
+        expect { Hive::PortAllocator.new(ports: 500) }.to raise_error(ArgumentError)
       end
 
       it 'fails when ports contains non-positive integers' do
-        expect{Hive::PortAllocator.new(ports: [0, 1, 2, 3, 4])}.to raise_error(ArgumentError)
-        expect{Hive::PortAllocator.new(ports: [1, 2, -3, 4, 5])}.to raise_error(ArgumentError)
-        expect{Hive::PortAllocator.new(ports: [1, 2, 3, 'four', 5])}.to raise_error(ArgumentError)
+        expect { Hive::PortAllocator.new(ports: [0, 1, 2, 3, 4]) }.to raise_error(ArgumentError)
+        expect { Hive::PortAllocator.new(ports: [1, 2, -3, 4, 5]) }.to raise_error(ArgumentError)
+        expect { Hive::PortAllocator.new(ports: [1, 2, 3, 'four', 5]) }.to raise_error(ArgumentError)
       end
     end
   end
@@ -69,7 +69,7 @@ RSpec.describe Hive::PortAllocator do
 
       it 'fails when no ports are available' do
         one_port.allocate_port
-        expect{one_port.allocate_port}.to raise_error(Hive::PortAllocator::NoPortsAvailable)
+        expect { one_port.allocate_port }.to raise_error(Hive::PortAllocator::NoPortsAvailable)
       end
     end
 
@@ -83,7 +83,7 @@ RSpec.describe Hive::PortAllocator do
       it 'does not release an unknown port' do
         p = one_port.allocate_port
         one_port.release_port(501)
-        expect{one_port.allocate_port}.to raise_error(Hive::PortAllocator::NoPortsAvailable)
+        expect { one_port.allocate_port }.to raise_error(Hive::PortAllocator::NoPortsAvailable)
       end
     end
   end
@@ -102,12 +102,11 @@ RSpec.describe Hive::PortAllocator do
         5.times do
           expect(sr.allocate_port).to be_between(501, 550)
         end
-        expect{sr.allocate_port}.to raise_error(Hive::PortAllocator::NoPortsAvailable)
+        expect { sr.allocate_port }.to raise_error(Hive::PortAllocator::NoPortsAvailable)
       end
 
       it 'fails if sufficient ports are unavailable' do
-        expect{fifty_ports.allocate_port_range(51)}.to raise_error(Hive::PortAllocator::NoPortsAvailable)
-
+        expect { fifty_ports.allocate_port_range(51) }.to raise_error(Hive::PortAllocator::NoPortsAvailable)
       end
 
       it 'creates distinct subranges' do
@@ -131,7 +130,7 @@ RSpec.describe Hive::PortAllocator do
       it 'does not release if any ports are unknown' do
         sr = fifty_ports.allocate_port_range(50)
         fifty_ports.release_port_range(one_port)
-        expect{fifty_ports.allocate_port}.to raise_error(Hive::PortAllocator::NoPortsAvailable)
+        expect { fifty_ports.allocate_port }.to raise_error(Hive::PortAllocator::NoPortsAvailable)
       end
 
       it 'allows a released range to be reallocated' do

@@ -24,29 +24,27 @@ end
 require 'socket'
 
 module Mac
-  VERSION = '1.7.1'
+  VERSION = '1.7.1'.freeze
 
-  def Mac.version
+  def self.version
     ::Mac::VERSION
   end
 
-  def Mac.dependencies
+  def self.dependencies
     {
     }
   end
 
-  def Mac.description
+  def self.description
     'cross platform mac address determination for ruby'
   end
 
-
   class << self
-
     ##
     # Accessor for the system's first MAC address, requires a call to #address
     # first
 
-    attr_accessor "mac_address"
+    attr_accessor 'mac_address'
 
     ##
     # Discovers and returns the system's MAC addresses.  Returns the first
@@ -70,8 +68,8 @@ module Mac
     ##
     # Shorter aliases for #address and #addresses
 
-    alias_method "addr", "address"
-    alias_method "addrs", "addresses"
+    alias addr address
+    alias addrs addresses
 
     private
 
@@ -82,21 +80,18 @@ module Mac
         addr.addr && addr.addr.pfamily == INTERFACE_PACKET_FAMILY
       end
 
-      if Socket.const_defined? :PF_LINK then
+      if Socket.const_defined? :PF_LINK
         interfaces.map do |addr|
           addr.addr.getnameinfo
-        end.flatten.select do |m|
-          !m.empty?
-        end
-      elsif Socket.const_defined? :PF_PACKET then
+        end.flatten.reject(&:empty?)
+      elsif Socket.const_defined? :PF_PACKET
         interfaces.map do |addr|
           addr.addr.inspect_sockaddr[/hwaddr=([\h:]+)/, 1]
-        end.select do |mac_addr|
-          mac_addr != '00:00:00:00:00:00'
+        end.reject do |mac_addr|
+          mac_addr == '00:00:00:00:00:00'
         end
       end
     end
-
   end
 end
 

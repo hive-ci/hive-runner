@@ -64,7 +64,7 @@ describe Hive::Register do
     end
 
     it 'does to crash with no workspaces' do
-      expect{register.clear_workspaces}.to_not raise_error
+      expect { register.clear_workspaces }.to_not raise_error
     end
 
     it 'leaves the required number of completed workspaces' do
@@ -76,7 +76,7 @@ describe Hive::Register do
       end
 
       register.clear_workspaces
-      expect(Dir.entries(@dir).select {|entry| File.directory? File.join(@dir, entry) and !(entry =='.' || entry == '..') }.length).to be 5
+      expect(Dir.entries(@dir).select { |entry| File.directory?(File.join(@dir, entry)) && !(entry == '.' || entry == '..') }.length).to be 5
     end
 
     it 'leaves the required number of completed workspaces' do
@@ -88,7 +88,7 @@ describe Hive::Register do
       end
 
       register.clear_workspaces
-      expect(Dir.entries(@dir).select {|entry| File.directory? File.join(@dir, entry) and !(entry =='.' || entry == '..') }.length).to be 5
+      expect(Dir.entries(@dir).select { |entry| File.directory?(File.join(@dir, entry)) && !(entry == '.' || entry == '..') }.length).to be 5
     end
 
     it 'does not remove workspaces for running jobs' do
@@ -100,7 +100,7 @@ describe Hive::Register do
       end
 
       register.clear_workspaces
-      expect(Dir.entries(@dir).select {|entry| File.directory? File.join(@dir, entry) and !(entry =='.' || entry == '..') }.length).to be 6
+      expect(Dir.entries(@dir).select { |entry| File.directory?(File.join(@dir, entry)) && !(entry == '.' || entry == '..') }.length).to be 6
     end
   end
 

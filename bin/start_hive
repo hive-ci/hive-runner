@@ -24,7 +24,7 @@ end.parse!
 
 # Version information
 gems = {}
-Gem::Specification.all.select{ |g| g.name =~ /hive-*/ }.each do |g|
+Gem::Specification.all.select { |g| g.name =~ /hive-*/ }.each do |g|
   gems[g.name] = g.version
 end
 
@@ -33,26 +33,26 @@ comm_port = ENV.fetch('HIVE_COMM_PORT', 9999).to_i
 comm = TCPServer.open(comm_port)
 Signal.trap('USR1') do
   client = comm.accept
-  client.puts "  Controllers in use:"
+  client.puts '  Controllers in use:'
   Hive.register.controllers.each do |c|
     client.puts "    * #{c.class.name.split('::').last.downcase}"
   end
 
   client.puts
 
-  client.puts "  Software versions:"
+  client.puts '  Software versions:'
   client.puts "    * hive-runner: #{gems['hive-runner']}"
-  gems.select{|k, v| k != 'hive-runner'}.sort.each do |name, version|
+  gems.reject { |k, _v| k == 'hive-runner' }.sort.each do |name, version|
     client.puts "    * #{name}: #{version}"
   end
-  
+
   client.puts
 
   # Create a hash of connected device details
   devices = Hive.register.devices
   device_details = {}
   client.puts "  Total number of devices: #{devices.length}"
-  if devices.length > 0
+  unless devices.empty?
     devices.each do |d|
       device_details[d.identity] = { worker: d.claimed? ? 'Claimed' : d.worker_pid }
     end
@@ -60,43 +60,40 @@ Signal.trap('USR1') do
   client.puts ''
 
   # Collect up the queue information per device/worker
-  device_details.each do |d, details|
-    if pid = details[:worker]
-      begin
-        queue_file = "#{Hive.config.logging.directory}/#{pid}.queues.yml"
-        details[:queues] = YAML.load( File.open(queue_file) )
-      rescue
-        details[:queues] = [ "---" ]
-      end
+  device_details.each do |_d, details|
+    next unless pid = details[:worker]
+    begin
+      queue_file = "#{Hive.config.logging.directory}/#{pid}.queues.yml"
+      details[:queues] = YAML.safe_load(File.open(queue_file))
+    rescue
+      details[:queues] = ['---']
     end
   end
 
   # Get a seperate hash of workspace details
   workspaces_list = {}
   Dir["#{Hive.config.logging.home}/*"].each do |d|
-    if File.directory?(d)
-      if File.exists?("#{d}/job_info")
-        File.open("#{d}/job_info") do |f|
-          if f.read =~ /^(\d*)\s*(\S*)$/
-            worker = $1 || '?'
-            state = $2 || '?'
-            if workspaces_list.has_key?(worker)
-              workspaces_list[worker][File.basename(d)] = state
-            else
-              workspaces_list[worker] = {File.basename(d) => state}
-            end
-          end
+    next unless File.directory?(d)
+    next unless File.exist?("#{d}/job_info")
+    File.open("#{d}/job_info") do |f|
+      if f.read =~ /^(\d*)\s*(\S*)$/
+        worker = Regexp.last_match(1) || '?'
+        state = Regexp.last_match(2) || '?'
+        if workspaces_list.key?(worker)
+          workspaces_list[worker][File.basename(d)] = state
+        else
+          workspaces_list[worker] = { File.basename(d) => state }
         end
       end
     end
   end
 
   # Build the table from all that data just collected
-  table = Terminal::Table.new headings: ['Device', 'Worker', 'Job', 'Status', 'Queues']
+  table = Terminal::Table.new headings: %w[Device Worker Job Status Queues]
   device_details.each do |d, details|
     table.add_separator
-    jobs = states = [ '---' ]
-    if workspaces_list.has_key?(details[:worker].to_s)
+    jobs = states = ['---']
+    if workspaces_list.key?(details[:worker].to_s)
       jobs = workspaces_list[details[:worker].to_s].keys
       states = jobs.map { |key| workspaces_list[details[:worker].to_s][key] }
       workspaces_list.delete(details[:worker].to_s)
@@ -122,6 +119,6 @@ end
 Hive.register.instantiate_controllers
 
 # Execution loop
-Hive::logger.info('*** HIVE STARTING ***')
-Hive::logger.info('Starting execution loop')
+Hive.logger.info('*** HIVE STARTING ***')
+Hive.logger.info('Starting execution loop')
 Hive.register.run

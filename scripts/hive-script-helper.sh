@@ -12,6 +12,6 @@ function cucumber_testname_args {
     printf -- '-n'
     TEST_NAME=${TEST_NAME// /\\s}
     printf "^$TEST_NAME$"
-    printf " " 
+    printf " "
   done
 }

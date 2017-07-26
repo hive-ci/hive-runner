@@ -16,7 +16,7 @@ module Hive
       @device_class = self.class.to_s.sub('Controller', 'Device')
       require @device_class.downcase.gsub(/::/, '/')
       Hive.logger.info("Controller '#{self.class}' created")
-      @port_range_size = (@config.has_key?('port_range_size') ? @config['port_range_size'] : 0)
+      @port_range_size = (@config.key?('port_range_size') ? @config['port_range_size'] : 0)
     end
 
     def create_device(extra_options = {})

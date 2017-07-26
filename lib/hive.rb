@@ -23,29 +23,31 @@ module Hive
     if Chamber.env.logging.directory?
       LOG_DIRECTORY = File.expand_path Chamber.env.logging.directory
     else
-      fail 'Missing log directory'
+      raise 'Missing log directory'
     end
-    if Chamber.env.logging.pids?
-      PIDS_DIRECTORY = File.expand_path Chamber.env.logging.pids
-    else
-      PIDS_DIRECTORY = LOG_DIRECTORY
-    end
+    PIDS_DIRECTORY = if Chamber.env.logging.pids?
+                       File.expand_path Chamber.env.logging.pids
+                     else
+                       LOG_DIRECTORY
+                     end
   else
-    fail 'Missing logging section in configuration file'
+    raise 'Missing logging section in configuration file'
   end
 
-  Airbrake.configure do |config|
-     config.host = Chamber.env.errbit.host
-     config.project_id = Chamber.env.errbit.project_id
-     config.project_key = Chamber.env.errbit.project_key
-  end if Chamber.env.has_key?('errbit')
+  if Chamber.env.key?('errbit')
+    Airbrake.configure do |config|
+      config.host = Chamber.env.errbit.host
+      config.project_id = Chamber.env.errbit.project_id
+      config.project_key = Chamber.env.errbit.project_key
+    end
+  end
 
   def self.config
     Chamber.env
   end
 
   def self.logger
-    if ! @logger
+    unless @logger
       @logger = Hive::Log.new
 
       if Hive.config.logging.main_filename?
@@ -58,9 +60,7 @@ module Hive
       @logger.default_progname = 'Hive core'
     end
 
-    if ! @logger.hive_mind
-      @logger.hive_mind = @hive_mind
-    end
+    @logger.hive_mind = @hive_mind unless @logger.hive_mind
 
     @logger
   end
@@ -68,8 +68,8 @@ module Hive
   def self.hive_mind
     Hive.logger.debug "Sysname: #{Sys::Uname.sysname}"
     Hive.logger.debug "Release: #{Sys::Uname.release}"
-    if ! @hive_mind
-      if @hive_mind = MindMeld::Hive.new(
+    unless @hive_mind
+      if (@hive_mind = MindMeld::Hive.new(
         url: Chamber.env.network.hive_mind? ? Chamber.env.network.hive_mind : nil,
         pem: Chamber.env.network.cert ? Chamber.env.network.cert : nil,
         ca_file: Chamber.env.network.cafile ? Chamber.env.network.cafile : nil,
@@ -77,22 +77,22 @@ module Hive
         device: {
           hostname: Hive.hostname,
           version: Gem::Specification.find_by_name('hive-runner').version.to_s,
-          runner_plugins: Hash[Gem::Specification.all.select{ |g| g.name =~ /hive-runner-/ }.map { |p| [p.name, p.version.to_s] }],
+          runner_plugins: Hash[Gem::Specification.all.select { |g| g.name =~ /hive-runner-/ }.map { |p| [p.name, p.version.to_s] }],
           macs: Mac.addrs,
           ips: [Hive.ip_address],
-          brand: Hive.config.brand? ? Hive.config.brand : 'BBC',
+          brand: Hive.config.brand? ? Hive.config.brand : DAEMON_NAME,
           model: Hive.config.model? ? Hive.config.model : 'Hive',
           operating_system_name: Sys::Uname.sysname,
           operating_system_version: Sys::Uname.release,
           device_type: 'Hive'
         }
-      ) and Etc.respond_to?(:nprocessors) # Require Ruby >= 2.2
+      )) && Etc.respond_to?(:nprocessors) # Require Ruby >= 2.2
         @hive_mind.add_statistics(
           label: 'Processor count',
           value: Etc.nprocessors,
           format: 'integer'
         )
-         
+
         if Chamber.env.diagnostics? && Chamber.env.diagnostics.hive? && Chamber.env.diagnostics.hive.load_warning? && Chamber.env.diagnostics.hive.load_error?
           @hive_mind.add_statistics(
             [
@@ -110,9 +110,7 @@ module Hive
           )
         end
         @hive_mind.flush_statistics
-        if @logger
-          @logger.hive_mind = @hive_mind
-        end
+        @logger.hive_mind = @hive_mind if @logger
       end
     end
 
@@ -125,13 +123,13 @@ module Hive
 
   # Poll the device database
   def self.poll
-    Hive.logger.debug "Polling hive"
+    Hive.logger.debug 'Polling hive'
     rtn = Hive.hive_mind.poll
     Hive.logger.debug "Return data: #{rtn}"
-    if rtn.has_key? 'error'
+    if rtn.key? 'error'
       Hive.logger.warn "Hive polling failed: #{rtn['error']}"
     else
-      Hive.logger.info "Successfully polled hive"
+      Hive.logger.info 'Successfully polled hive'
     end
   end
 
@@ -147,7 +145,7 @@ module Hive
 
   # Get the IP address of the Hive
   def self.ip_address
-    ip = Socket.ip_address_list.detect { |intf| intf.ipv4_private? }
+    ip = Socket.ip_address_list.detect(&:ipv4_private?)
     ip.ip_address
   end
 
@@ -155,5 +153,4 @@ module Hive
   def self.hostname
     Socket.gethostname.split('.').first
   end
-
 end

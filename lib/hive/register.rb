@@ -7,26 +7,29 @@ module Hive
     attr_reader :controllers
 
     def initialize
-      @controllers = []
-      @devices = {}
-      @max_devices = 5 # TODO Add to configuration file
-      if Hive.config.ports?
-        @port_allocator = Hive::PortAllocator.new(minimum: Hive.config.ports.minimum, maximum: Hive.config.ports.maximum)
-      else
-        @port_allocator = Hive::PortAllocator.new(ports: [])
-      end
+      @controllers    = []
+      @devices        = {}
+      @max_devices    = 5 # TODO: Add to configuration file
+      @port_allocator = if Hive.config.ports?
+                          Hive::PortAllocator.new(
+                            minimum: Hive.config.ports.minimum,
+                            maximum: Hive.config.ports.maximum
+                          )
+                        else
+                          Hive::PortAllocator.new(ports: [])
+                        end
     end
 
     def devices
       list = []
-      @devices.each do |controller, device_list|
+      @devices.each do |_controller, device_list|
         list.concat(device_list)
       end
       list
     end
 
     def worker_pids
-      self.devices.collect{ |d| d.worker_pid }.compact
+      devices.collect(&:worker_pid).compact
     end
 
     def instantiate_controllers(controller_details = Hive.config.controllers)
@@ -52,7 +55,7 @@ module Hive
 
         # For the moment, clear Hive Mind logs each time
         # TODO Something better so that warnings and errors are not hidden
-        Hive.logger.clear({component:  Hive.logger.default_progname, level: Hive.config.logging.hm_logs_to_delete})
+        Hive.logger.clear(component: Hive.logger.default_progname, level: Hive.config.logging.hm_logs_to_delete)
         Hive.logger.debug('Hive Mind log cleared')
       end
     end
@@ -63,7 +66,7 @@ module Hive
       @controllers.each do |c|
         begin
           new_device_list[c.class] = []
-          @devices[c.class] = [] if ! @devices.has_key?(c.class)
+          @devices[c.class] = [] unless @devices.key?(c.class)
           Hive.logger.info("Checking controller #{c.class}")
           c.detect.each do |device|
             Hive.logger.debug("Found #{device.inspect}")
@@ -95,7 +98,7 @@ module Hive
             if d.claimed?
               d.stop if d.running?
             else
-              d.start if ! d.running?
+              d.start unless d.running?
             end
           end
         rescue Hive::Controller::DeviceDetectionFailed
@@ -116,13 +119,13 @@ module Hive
 
     def clear_workspaces
       candidates = Dir.glob("#{Hive.config.logging.home}/*")
-        .select{ |f|
-          File.directory?(f) \
-          && File.exists?("#{f}/job_info") \
-          && File.read("#{f}/job_info").chomp.to_s =~ /completed/
-        }.sort_by{ |f|
-          File.mtime(f)
-        }.reverse
+                      .select do |f|
+                     File.directory?(f) \
+                     && File.exist?("#{f}/job_info") \
+                     && File.read("#{f}/job_info").chomp.to_s =~ /completed/
+                   end.sort_by do |f|
+        File.mtime(f)
+      end.reverse
       if candidates && candidates.length > Hive.config.logging.homes_to_keep
         candidates[Hive.config.logging.homes_to_keep..-1].each do |dir|
           Hive.logger.info("Found (and deleting) #{dir}")

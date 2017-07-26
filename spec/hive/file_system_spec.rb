@@ -2,7 +2,6 @@ require 'spec_helper'
 require 'hive/file_system'
 
 RSpec.describe Hive::FileSystem do
-
   describe '.new' do
     before(:all) do
       `touch test.sh`
@@ -21,6 +20,5 @@ RSpec.describe Hive::FileSystem do
     it 'checks tar.gz file integrity correctly' do
       expect(Hive::FileSystem.new(0, Dir.mktmpdir, Hive::Log.new).check_build_integrity('test.tar.gz')).to be true
     end
-
   end
 end

@@ -24,11 +24,13 @@ describe Hive::ExecutionScript do
   describe '#set_env' do
     let(:fs) { FileSystemMock.new }
 
-    let(:es) { Hive::ExecutionScript.new(
-      file_system: fs,
-      log: Hive::Log.new,
-      keep_running: nil
-    ) }
+    let(:es) do
+      Hive::ExecutionScript.new(
+        file_system: fs,
+        log: Hive::Log.new,
+        keep_running: nil
+      )
+    end
 
     after(:each) do
       fs.cleanup

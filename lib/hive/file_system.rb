@@ -1,4 +1,4 @@
-require "fileutils"
+require 'fileutils'
 
 module Hive
   class FileSystem
@@ -15,7 +15,7 @@ module Hive
     end
 
     def home_path
-      @home_path ||= "#{@home_directory}/#{@job_id.to_s}"
+      @home_path ||= "#{@home_directory}/#{@job_id}"
     end
 
     def results_path
@@ -46,29 +46,29 @@ module Hive
     def fetch_build(build_url, destination_path)
       base_url      = Hive.config.network['scheduler']
       apk_url       = base_url + '/' + build_url
-      
+
       job = Hive::Messages::Job.new
       response = job.fetch(apk_url)
 
       tempfile = Tempfile.new('build.apk')
-        File.open(tempfile.path,'w') do |f|
+      File.open(tempfile.path, 'w') do |f|
         f.write response.body
       end
 
       copy_file(tempfile.path, destination_path)
-      check_build_integrity( destination_path )
+      check_build_integrity(destination_path)
     end
 
-    def check_build_integrity( destination_path )
+    def check_build_integrity(destination_path)
       output = `file #{destination_path}`
       if output =~ /\s[Zz]ip\s/
         result = `zip -T #{destination_path}`
         @log.info(result)
-        $? == 0
+        $CHILD_STATUS == 0
       elsif output =~ /\sgzip\s/
         result = `tar -tzf #{destination_path} > /dev/null`
         @log.info(result)
-        $? == 0
+        $CHILD_STATUS == 0
       else
         true
       end
@@ -77,22 +77,18 @@ module Hive
     private
 
     def copy_file(src, dest)
-      begin
-        FileUtils.cp(src, dest)
-        @log.debug("Copied file #{src} -> #{dest}")
-      rescue => e
-        @log.error(e.message)
-      end
+      FileUtils.cp(src, dest)
+      @log.debug("Copied file #{src} -> #{dest}")
+    rescue => e
+      @log.error(e.message)
     end
 
     def make_directory(directory)
-      begin
-        FileUtils.rm_r(directory) if File.directory?(directory)
-        FileUtils.mkdir_p(directory)
-        @log.debug("Created directory: #{directory}")
-      rescue => e
-        @log.fatal(e.message)
-      end
+      FileUtils.rm_r(directory) if File.directory?(directory)
+      FileUtils.mkdir_p(directory)
+      @log.debug("Created directory: #{directory}")
+    rescue => e
+      @log.fatal(e.message)
     end
   end
 end
