@@ -3,9 +3,9 @@ require 'fileutils'
 module Hive
   class FileSystem
     def initialize(job_id, home_directory, log)
-      @job_id = job_id
+      @job_id         = job_id
       @home_directory = home_directory
-      @log = log
+      @log            = log
       @log.debug "Creating job paths with id=#{@job_id} and home=#{@home_directory}"
       make_directory(home_path)
       make_directory(results_path)
@@ -64,11 +64,11 @@ module Hive
       if output =~ /\s[Zz]ip\s/
         result = `zip -T #{destination_path}`
         @log.info(result)
-        $CHILD_STATUS == 0
+        $? == 0
       elsif output =~ /\sgzip\s/
         result = `tar -tzf #{destination_path} > /dev/null`
         @log.info(result)
-        $CHILD_STATUS == 0
+        $? == 0
       else
         true
       end

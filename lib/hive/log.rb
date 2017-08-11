@@ -83,9 +83,8 @@ module Hive
     # Currently this will clear the Hive Mind log but do nothing to the local
     # files
     def clear(options)
-      if hive_mind
-        hive_mind.clear_state(component: options[:component], level: options[:level])
-      end
+      return unless hive_mind
+      hive_mind.clear_state(component: options[:component], level: options[:level])
     end
 
     private
@@ -97,15 +96,14 @@ module Hive
         l.send(level, progname) { block ? yield : args[0] }
       end
 
-      if hive_mind
-        params = {
-          state: level,
-          component: progname,
-          message: block ? yield : args[0]
-        }
+      return unless hive_mind
+      params = {
+        state: level,
+        component: progname,
+        message: block ? yield : args[0]
+      }
 
-        hive_mind.set_state params
-      end
+      hive_mind.set_state params
     end
   end
 end

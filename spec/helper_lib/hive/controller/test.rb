@@ -9,17 +9,14 @@ module Hive
 
       def initialize(config)
         @detect_success = true
-        @maximum = 5
+        @maximum        = 5
         super
       end
 
       def detect
-        if @detect_success
-          (1..@maximum).collect do |i|
-            Object.const_get(@device_class).new(@config.merge('id' => i))
-          end
-        else
-          raise Hive::Controller::DeviceDetectionFailed
+        raise Hive::Controller::DeviceDetectionFailed unless @detect_success
+        (1..@maximum).collect do |i|
+          Object.const_get(@device_class).new(@config.merge('id' => i))
         end
       end
     end
