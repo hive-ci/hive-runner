@@ -5,6 +5,7 @@ require 'hive/device/shell'
 
 describe Hive::Device do
   after(:each) do
+    sleep 1
     `ps aux | grep TEST_WORKER | grep -v grep | awk '{ print $2 }'`.split("\n").each do |pid|
       Process.kill 'TERM', pid.to_i
     end
@@ -14,7 +15,8 @@ describe Hive::Device do
     it 'forks a test worker' do
       device = Hive::Device::Shell.new('id' => 1, 'name_stub' => 'TEST_WORKER')
       device.start
-      expect(`ps aux | grep TEST_WORKER | grep -v grep | wc -l`.to_i).to be 1
+      sleep 1
+      expect(`ps aux | grep TEST_WORKER | grep -v grep | wc -l`.to_i).to eq(1)
       # Clean up
       device.stop
     end
@@ -27,7 +29,7 @@ describe Hive::Device do
       sleep 1
       device.stop
       sleep 1
-      expect(`ps aux | grep TEST_WORKER | grep -v grep | wc -l`.to_i).to be 0
+      expect(`ps aux | grep TEST_WORKER | grep -v grep | wc -l`.to_i).to eq(0)
     end
   end
 
@@ -35,7 +37,8 @@ describe Hive::Device do
     it 'shows that a worker is running' do
       device = Hive::Device::Shell.new('id' => 1, 'name_stub' => 'TEST_WORKER')
       device.start
-      expect(device.running?).to be true
+      sleep 1
+      expect(device.running?).to eq(true)
       # Clean up
       device.stop
     end
@@ -46,7 +49,7 @@ describe Hive::Device do
       sleep 1
       device.stop
       sleep 1
-      expect(device.running?).to be false
+      expect(device.running?).to eq(false)
     end
   end
 end

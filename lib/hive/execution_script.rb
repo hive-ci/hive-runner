@@ -95,7 +95,7 @@ module Hive
         begin
           Timeout.timeout(30) do
             Process.wait pid
-            exit_value = $CHILD_STATUS.exitstatus
+            exit_value = $?.exitstatus
             running = false
           end
         rescue Timeout::Error

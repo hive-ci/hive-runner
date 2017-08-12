@@ -11,25 +11,28 @@ require 'etc'
 
 # The Hive automated testing framework
 module Hive
+  # Supress Hashie error
+  Hashie.logger = Logger.new(nil)
+
   Chamber.load(
     basepath: ENV['HIVE_CONFIG'] || './config/',
     namespaces: {
       environment: ENV['HIVE_ENVIRONMENT'] || 'test'
     }
   )
-  DAEMON_NAME = Chamber.env.daemon_name? ? Chamber.env.daemon_name : 'HIVE'
+  DAEMON_NAME ||= Chamber.env.daemon_name? ? Chamber.env.daemon_name : 'HIVE'
 
   if Chamber.env.logging?
     if Chamber.env.logging.directory?
-      LOG_DIRECTORY = File.expand_path Chamber.env.logging.directory
+      LOG_DIRECTORY ||= File.expand_path Chamber.env.logging.directory
     else
       raise 'Missing log directory'
     end
-    PIDS_DIRECTORY = if Chamber.env.logging.pids?
-                       File.expand_path Chamber.env.logging.pids
-                     else
-                       LOG_DIRECTORY
-                     end
+    PIDS_DIRECTORY ||= if Chamber.env.logging.pids?
+                         File.expand_path Chamber.env.logging.pids
+                       else
+                         LOG_DIRECTORY
+                       end
   else
     raise 'Missing logging section in configuration file'
   end
@@ -75,15 +78,17 @@ module Hive
         ca_file: Chamber.env.network.cafile ? Chamber.env.network.cafile : nil,
         verify_mode: Chamber.env.network.verify_mode ? Chamber.env.network.verify_mode : nil,
         device: {
-          hostname: Hive.hostname,
-          version: Gem::Specification.find_by_name('hive-runner').version.to_s,
-          runner_plugins: Hash[Gem::Specification.all.select { |g| g.name =~ /hive-runner-/ }.map { |p| [p.name, p.version.to_s] }],
+          hostname: Hive.config.name? ? Hive.config.name : Hive.hostname,
+          version: hive_runner_version,
+          runner_plugins: runner_plugins,
           macs: Mac.addrs,
           ips: [Hive.ip_address],
-          brand: Hive.config.brand? ? Hive.config.brand : DAEMON_NAME,
+          brand: Hive.config.brand? ? Hive.config.brand : 'Hive',
           model: Hive.config.model? ? Hive.config.model : 'Hive',
-          operating_system_name: Sys::Uname.sysname,
-          operating_system_version: Sys::Uname.release,
+          location: Hive.config.location? ? Hive.config.location : nil,
+          building: Hive.config.building? ? Hive.config.building : nil,
+          operating_system_name: system_name,
+          operating_system_version: system_version,
           device_type: 'Hive'
         }
       )) && Etc.respond_to?(:nprocessors) # Require Ruby >= 2.2
@@ -152,5 +157,34 @@ module Hive
   # Get the hostname of the Hive
   def self.hostname
     Socket.gethostname.split('.').first
+  end
+
+  private
+
+  def self.hive_runner_version
+    Gem::Specification.find_by_name('hive-runner').version.to_s
+  end
+
+  def self.runner_plugins
+    Hash[Gem::Specification.find_all_by_name('hive-runner').map { |p| [p.name, p.version.to_s] }]
+  end
+
+  def self.system_name
+    Sys::Uname.sysname.casecmp('darwin').zero? ? operating_system_info(:ProductName) : Sys::Uname.sysname
+  end
+
+  def self.system_version
+    Sys::Uname.sysname.casecmp('darwin').zero? ? operating_system_info(:ProductVersion) : Sys::Uname.release
+  end
+
+  def self.operating_system_info(type)
+    result    = `sw_vers`
+    props     = {}
+    prop_list = result.split("\n")
+
+    prop_list.each do |line|
+      line.scan(/(.*):\t(.*)/).map { |(key, value)| props[key.strip.to_sym] = value }
+    end
+    props[type]
   end
 end

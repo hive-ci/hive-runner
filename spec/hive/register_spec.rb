@@ -20,7 +20,7 @@ describe Hive::Register do
       register.instantiate_controllers
       d = register.devices
       expect(d).to be_an Array
-      expect(d.length).to be 5
+      expect(d.length).to eq(5)
     end
   end
 
@@ -38,7 +38,7 @@ describe Hive::Register do
       end
       controller_list[Hive::Controller::Test].detect_success = false
       register.check_controllers
-      expect(register.devices.length).to be 10 # 5 for each controller
+      expect(register.devices.length).to eq 10 # 5 for each controller
     end
 
     it "allows one controller's devices to update if another fails" do
@@ -49,7 +49,7 @@ describe Hive::Register do
       controller_list[Hive::Controller::Test].detect_success = false
       controller_list[Hive::Controller::Shell].instance_variable_set(:@workers, 2)
       register.check_controllers
-      expect(register.devices.length).to be 7
+      expect(register.devices.length).to eq(10)
     end
   end
 
@@ -76,7 +76,7 @@ describe Hive::Register do
       end
 
       register.clear_workspaces
-      expect(Dir.entries(@dir).select { |entry| File.directory?(File.join(@dir, entry)) && !(entry == '.' || entry == '..') }.length).to be 5
+      expect(Dir.entries(@dir).select { |entry| File.directory?(File.join(@dir, entry)) && !(entry == '.' || entry == '..') }.length).to eq(5)
     end
 
     it 'leaves the required number of completed workspaces' do
@@ -88,7 +88,7 @@ describe Hive::Register do
       end
 
       register.clear_workspaces
-      expect(Dir.entries(@dir).select { |entry| File.directory?(File.join(@dir, entry)) && !(entry == '.' || entry == '..') }.length).to be 5
+      expect(Dir.entries(@dir).select { |entry| File.directory?(File.join(@dir, entry)) && !(entry == '.' || entry == '..') }.length).to eq(5)
     end
 
     it 'does not remove workspaces for running jobs' do
@@ -100,7 +100,7 @@ describe Hive::Register do
       end
 
       register.clear_workspaces
-      expect(Dir.entries(@dir).select { |entry| File.directory?(File.join(@dir, entry)) && !(entry == '.' || entry == '..') }.length).to be 6
+      expect(Dir.entries(@dir).select { |entry| File.directory?(File.join(@dir, entry)) && !(entry == '.' || entry == '..') }.length).to eq(6)
     end
   end
 
@@ -115,7 +115,7 @@ describe Hive::Register do
       register.instantiate_controllers
       p = register.worker_pids
       expect(p).to be_an Array
-      expect(p.length).to be 5
+      expect(p.length).to eq(5)
     end
 
     it 'updates the pid list after a worker terminates' do
@@ -126,7 +126,7 @@ describe Hive::Register do
       sleep 2
       p = register.worker_pids
       expect(p).to be_an Array
-      expect(p.length).to be 4
+      expect(p.length).to eq(4)
     end
   end
 end

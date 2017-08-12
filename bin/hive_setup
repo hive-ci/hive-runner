@@ -155,10 +155,10 @@ def gather_options
 end
 
 def setup_hive(options)
-  dir = options[:dir]
-  mods = options[:mods]
+  dir     = options[:dir]
+  mods    = options[:mods]
   daemons = options[:daemons]
-  ruby = options[:ruby] || 'system'
+  ruby    = options[:ruby] || 'system'
 
   FileUtils.mkdir_p("#{dir}/config")
   FileUtils.mkdir_p("#{dir}/log")
@@ -167,7 +167,11 @@ def setup_hive(options)
 
   File.open("#{dir}/config/settings.yml", 'w') do |f|
     f.puts "#{ENV['HIVE_ENVIRONMENT'] || 'test'}:"
-    f.puts "  daemon_name: <%= ENV['HIVE_RUNNER_NAME'] || '#{m[:device].upcase}_HIVE' %>"
+    f.puts "  name: <%= ENV['HIVE_NAME'] || 'HIVE' %>"
+    f.puts "  daemon_name: '#{m[:device].upcase}_HIVE'"
+    f.puts "  model: <%= '#{m[:device].upcase}_HIVE' %>"
+    f.puts "  location: <%= ENV['HIVE_LOCATION'] %>"
+    f.puts "  building: <%= ENV['HIVE_BUILDING_LOCATION'] %>"
     f.puts ''
     f.puts '  controllers:'
     f.puts '    shell:'
@@ -245,7 +249,7 @@ def setup_hive(options)
       startup_script = "#{dir}/hived.init"
       config_file = "#{dir}/hived.conf"
       write_logs = '> $LOG_DIRECTORY/hived.out 2> $LOG_DIRECTORY/hived.err'
-      File.open("#{dir}/start_hive.sh", 'w', 0755) do |f|
+      File.open("#{dir}/start_hive.sh", 'w', 0o755) do |f|
         f.write "#!/bin/bash -li\n"
 
         f.write "if [ -f /etc/hived.conf ]\n"
