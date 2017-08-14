@@ -79,6 +79,7 @@ module Hive
         verify_mode: Chamber.env.network.verify_mode ? Chamber.env.network.verify_mode : nil,
         device: {
           hostname: Hive.config.name? ? Hive.config.name : Hive.hostname,
+          serial: serial_identifier,
           version: hive_runner_version,
           runner_plugins: runner_plugins,
           macs: Mac.addrs,
@@ -169,22 +170,38 @@ module Hive
     Hash[Gem::Specification.find_all_by_name('hive-runner').map { |p| [p.name, p.version.to_s] }]
   end
 
+  def self.serial_identifier
+    command = `system_profiler SPHardwareDataType | grep Serial`
+    Sys::Uname.sysname.casecmp('darwin').zero? ? operating_system_info(command, :SerialNumber) : linux_serial
+  end
+
   def self.system_name
-    Sys::Uname.sysname.casecmp('darwin').zero? ? operating_system_info(:ProductName) : Sys::Uname.sysname
+    Sys::Uname.sysname.casecmp('darwin').zero? ? operating_system_info(`sw_vers`, :ProductName) : Sys::Uname.sysname
   end
 
   def self.system_version
-    Sys::Uname.sysname.casecmp('darwin').zero? ? operating_system_info(:ProductVersion) : Sys::Uname.release
+    Sys::Uname.sysname.casecmp('darwin').zero? ? operating_system_info(`sw_vers`, :ProductVersion) : Sys::Uname.release
   end
 
-  def self.operating_system_info(type)
-    result    = `sw_vers`
+  def self.operating_system_info(command, type)
+    result    = command
     props     = {}
     prop_list = result.split("\n")
 
     prop_list.each do |line|
-      line.scan(/(.*):\t(.*)/).map { |(key, value)| props[key.strip.to_sym] = value }
+      line.scan(/(.*):(?:\t?)(.*)/).map do |(key, value)|
+        if key.casecmp('Serial Number (system)').zero?
+          props['SerialNumber'.strip.to_sym] = value
+        else
+          props[key.strip.delete(' ').to_sym] = value
+        end
+      end
     end
     props[type]
+  end
+
+  def self.linux_serial
+    command = `udevadm info --query=all --name=/dev/sda | grep -Eo ID_SERIAL_SHORT=(.*)`
+    command.split('=').last
   end
 end
