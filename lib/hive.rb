@@ -171,8 +171,7 @@ module Hive
   end
 
   def self.serial_identifier
-    command = `system_profiler SPHardwareDataType | grep Serial`
-    Sys::Uname.sysname.casecmp('darwin').zero? ? operating_system_info(command, :SerialNumber) : linux_serial
+    Sys::Uname.sysname.casecmp('darwin').zero? ? mac_serial : linux_serial
   end
 
   def self.system_name
@@ -189,19 +188,19 @@ module Hive
     prop_list = result.split("\n")
 
     prop_list.each do |line|
-      line.scan(/(.*):(?:\t?)(.*)/).map do |(key, value)|
-        if key.casecmp('Serial Number (system)').zero?
-          props['SerialNumber'.strip.to_sym] = value
-        else
-          props[key.strip.delete(' ').to_sym] = value
-        end
+      line.scan(/(.*):\t(.*)/).map do |(key, value)|
+        props[key.strip.delete(' ').to_sym] = value
       end
     end
     props[type]
   end
 
+  def self.mac_serial
+    `system_profiler SPHardwareDataType | awk '/Serial/ {print $4}'`.to_s.strip
+  end
+
   def self.linux_serial
     command = `udevadm info --query=all --name=/dev/sda | grep -Eo ID_SERIAL_SHORT=(.*)`
-    command.split('=').last
+    command.split('=').last.to_s.strip
   end
 end
