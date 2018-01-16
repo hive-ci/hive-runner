@@ -16,16 +16,16 @@ default: &shared
   controllers:
     controller1:
       arg: value
-  
+
   logging:
     directory: 'spec/tmp'
     home: 'spec/tmp/home'
     homes_to_keep: 5
-  
+
   timings:
     worker_loop_interval: 5
     controller_loop_interval: 1
-  
+
   network:
     scheduler: http://example.co.uk
     cert: cert.pem
