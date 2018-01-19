@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'hive/controller'
 require 'hive/worker/shell'
 

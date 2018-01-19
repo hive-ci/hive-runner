@@ -1,9 +1,11 @@
+# frozen_string_literal: true
+
 require 'hive/diagnostic'
 require 'device_api/ios/idevice'
 
 module Hive
   class Diagnostic
-    class Ios
+    class IOS
       class Uptime < Diagnostic
         def diagnose(data = {})
           pass('Not configured for reboot', data) unless config.key?(:reboot_timeout)
@@ -43,8 +45,8 @@ module Hive
             trusted ? pass('Rebooted', data) : raise('Failed to trust after reboot', data)
           end
           @last_boot_time = Time.now
-          rescue => e
-            Hive.logger.error('[iOS]') { "Caught exception #{e} while rebooting #{device_api.serial}" }
+        rescue StandardError => e
+          Hive.logger.error('[iOS]') { "Caught exception #{e} while rebooting #{device_api.serial}" }
         end
         diagnose(data)
       end

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'hive/worker'
 require 'hive/messages/ios_job'
 require 'fruity_builder'
@@ -17,7 +19,7 @@ module Hive
   end
 
   class Worker
-    class Ios < Worker
+    class IOS < Worker
       attr_accessor :device
 
       def initialize(device)
@@ -144,7 +146,7 @@ module Hive
       end
 
       def job_message_klass
-        Hive::Messages::IosJob
+        Hive::Messages::IOSJob
       end
 
       def post_script(_job, _file_system, _script)

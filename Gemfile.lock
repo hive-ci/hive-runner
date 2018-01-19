@@ -1,19 +1,17 @@
 GIT
   remote: git@github.com:hive-ci/device_api-android.git
-  revision: 4b7058fc654fd710251a497d32b4f3d49dfbf4a2
+  revision: 3e925d654b64a96ca50c4e1816b15f695a04f7d7
   specs:
     device_api-android (1.2.20)
-      android-devices
       device_api (~> 1.0.2)
 
 GIT
   remote: git@github.com:hive-ci/device_api-ios.git
-  revision: 98f9b66d1b2ca09631b4ba211952b0e9f004ea37
+  revision: 513fe9c1427106a0cc5f98ed4713347b9f28f7ce
   specs:
     device_api-ios (1.1.0)
       device_api (>= 1.0, < 2.0)
-      ios-devices (>= 0.2)
-      ox (>= 2.1.0)
+      ox (~> 2.8)
 
 PATH
   remote: .
@@ -23,7 +21,7 @@ PATH
       airbrake-ruby (~> 1.2.2)
       chamber (~> 2.7)
       code_cache (~> 0.2)
-      daemons (~> 1.2)
+      daemons (~> 1.2.6)
       device_api-android (~> 1.0, >= 1.2.9)
       device_api-ios (~> 1.1.0)
       fruity_builder (~> 1.1.0)
@@ -50,10 +48,9 @@ GEM
       minitest (~> 5.1)
       thread_safe (~> 0.3, >= 0.3.4)
       tzinfo (~> 1.1)
-    addressable (2.5.1)
-      public_suffix (~> 2.0, >= 2.0.2)
+    addressable (2.5.2)
+      public_suffix (>= 2.0.2, < 4.0)
     airbrake-ruby (1.2.4)
-    android-devices (1.0.1)
     arel (6.0.4)
     axiom-types (0.1.1)
       descendants_tracker (~> 0.0.4)
@@ -83,7 +80,7 @@ GEM
     ffi (1.9.18)
     fruity_builder (1.1.1)
       ox (>= 2.1.0)
-    hashdiff (0.3.5)
+    hashdiff (0.3.7)
     hashie (3.5.7)
     hive-messages (1.0.7)
       activemodel (>= 4.0, < 4.3)
@@ -96,7 +93,6 @@ GEM
     i18n (0.9.1)
       concurrent-ruby (~> 1.0)
     ice_nine (0.11.2)
-    ios-devices (0.2.5)
     json (1.8.6)
     mimemagic (0.3.2)
     mind_meld (0.1.12)
@@ -106,7 +102,7 @@ GEM
     multi_json (1.13.1)
     multipart-post (2.0.0)
     ox (2.8.2)
-    public_suffix (2.0.5)
+    public_suffix (3.0.1)
     representable (3.0.4)
       declarative (< 0.1.0)
       declarative-option (< 0.2.0)
@@ -118,25 +114,25 @@ GEM
       test_rail-api (~> 0.4.1)
     roar (1.1.0)
       representable (~> 3.0.0)
-    rspec (3.6.0)
-      rspec-core (~> 3.6.0)
-      rspec-expectations (~> 3.6.0)
-      rspec-mocks (~> 3.6.0)
-    rspec-core (3.6.0)
-      rspec-support (~> 3.6.0)
-    rspec-expectations (3.6.0)
+    rspec (3.7.0)
+      rspec-core (~> 3.7.0)
+      rspec-expectations (~> 3.7.0)
+      rspec-mocks (~> 3.7.0)
+    rspec-core (3.7.1)
+      rspec-support (~> 3.7.0)
+    rspec-expectations (3.7.0)
       diff-lcs (>= 1.2.0, < 2.0)
-      rspec-support (~> 3.6.0)
-    rspec-mocks (3.6.0)
+      rspec-support (~> 3.7.0)
+    rspec-mocks (3.7.0)
       diff-lcs (>= 1.2.0, < 2.0)
-      rspec-support (~> 3.6.0)
-    rspec-support (3.6.0)
+      rspec-support (~> 3.7.0)
+    rspec-support (3.7.0)
     safe_yaml (1.0.4)
-    simplecov (0.14.1)
+    simplecov (0.15.1)
       docile (~> 1.1.0)
       json (>= 1.8, < 3)
       simplecov-html (~> 0.10.0)
-    simplecov-html (0.10.1)
+    simplecov-html (0.10.2)
     sys-cpu (0.7.2)
       ffi
     sys-uname (1.0.3)

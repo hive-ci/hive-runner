@@ -1,40 +1,40 @@
+# frozen_string_literal: true
+
 require 'hive/diagnostic'
 module Hive
   class Diagnostic
     class Android
       class Memory < Diagnostic
-
         def memory
-          @memory = self.device_api.memory unless @memory
+          @memory ||= device_api.memory
           mem = @memory.mem_info
-          return {:free => mem.free.split(' ').first, 
-                  :total => mem.total.split(' ').first, 
-                  :used => mem.used.split(' ').first, }
+          { free: mem.free.split(' ').first,
+            total: mem.total.split(' ').first,
+            used: mem.used.split(' ').first }
         end
 
         def diagnose
           data = {}
-          result = "pass"
-          operator = {:free => :>=, :used => :<= , :total => :==}
+          result = 'pass'
+          operator = { free: :>=, used: :<=, total: :== }
           memory_status = memory
           config.each do |key, value|
-            raise InvalidParameterError.new("Battery Parameter should be any of ':free', ':used', ':total'") if !memory_status.has_key? key.to_sym
-            data[:"#{key}_memory"] = {:value => memory_status[:"#{key}"], :unit => "kB"}
-            result = "fail" if !memory_status[:"#{key}"].to_i.send(operator[:"#{key}"], value.to_i)
-          end 
+            raise InvalidParameterError, "Battery Parameter should be any of ':free', ':used', ':total'" unless memory_status.key? key.to_sym
+            data[:"#{key}_memory"] = { value: memory_status[:"#{key}"], unit: 'kB' }
+            result = 'fail' unless memory_status[:"#{key}"].to_i.send(operator[:"#{key}"], value.to_i)
+          end
 
-          if result != "pass"
-            self.fail("Memory", data)  
+          if result != 'pass'
+            raise('Memory', data)
           else
-            self.pass("Memory", data)  
+            pass('Memory', data)
           end
         end
 
-        def repair(result)
+        def repair(_result)
           # Add repair for memory
-          self.fail("Cannot repair memory")
+          raise('Cannot repair memory')
         end
-
       end
     end
   end

@@ -23,7 +23,7 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency 'activerecord', '~> 4.2'
   s.add_runtime_dependency 'airbrake-ruby', '~> 1.2.2'
   s.add_runtime_dependency 'code_cache', '~> 0.2'
-  s.add_runtime_dependency 'daemons', '~> 1.2'
+  s.add_runtime_dependency 'daemons', '~> 1.2.6'
   s.add_runtime_dependency 'mono_logger', '~> 1.1'
 
   s.add_runtime_dependency 'device_api-android', '~> 1.0', '>= 1.2.9'

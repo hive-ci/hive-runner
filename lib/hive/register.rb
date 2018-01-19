@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'hive'
 require 'hive/port_allocator'
 
@@ -22,9 +24,7 @@ module Hive
 
     def devices
       list = []
-      @devices.each do |_controller, device_list|
-        list.concat(device_list)
-      end
+      @devices.each_value { |device_list| list.concat(device_list) }
       list
     end
 
@@ -33,13 +33,11 @@ module Hive
     end
 
     def instantiate_controllers(controller_details = Hive.config.controllers)
-      if controller_details
-        controller_details.each do |type, opts|
-          Hive.logger.info("Adding controller for '#{type}'")
-          require "hive/controller/#{type}"
-          controller = Object.const_get('Hive').const_get('Controller').const_get(type.capitalize).new(opts.to_hash)
-          @controllers << controller
-        end
+      controller_details&.each do |type, opts|
+        Hive.logger.info("Adding controller for '#{type}'")
+        require "hive/controller/#{type}"
+        controller = Object.const_get('Hive').const_get('Controller').const_get(type.capitalize).new(opts.to_hash)
+        @controllers << controller
       end
       check_controllers
       @controllers
@@ -111,10 +109,9 @@ module Hive
     def housekeeping
       clear_workspaces
 
-      if Hive.config.timings.stats_update_interval? && @next_stat_update < Time.now
-        Hive.send_statistics
-        @next_stat_update += Hive.config.timings.stats_update_interval
-      end
+      return unless Hive.config.timings.stats_update_interval? && @next_stat_update < Time.now
+      Hive.send_statistics
+      @next_stat_update += Hive.config.timings.stats_update_interval
     end
 
     def clear_workspaces
@@ -126,11 +123,11 @@ module Hive
                    end.sort_by do |f|
         File.mtime(f)
       end.reverse
-      if candidates && candidates.length > Hive.config.logging.homes_to_keep
-        candidates[Hive.config.logging.homes_to_keep..-1].each do |dir|
-          Hive.logger.info("Found (and deleting) #{dir}")
-          FileUtils.rm_rf(dir)
-        end
+
+      return unless candidates && candidates.length > Hive.config.logging.homes_to_keep
+      candidates[Hive.config.logging.homes_to_keep..-1].each do |dir|
+        Hive.logger.info("Found (and deleting) #{dir}")
+        FileUtils.rm_rf(dir)
       end
     end
   end

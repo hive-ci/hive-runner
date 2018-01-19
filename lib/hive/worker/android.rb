@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'hive/worker'
 require 'hive/messages/android_job'
 
@@ -39,7 +41,7 @@ module Hive
           Hive.logger.info("Device '#{@qualifier}' is unauthorized")
         rescue DeviceAPI::Android::ADBCommandError
           Hive.logger.info('Device disconnected during worker initialization')
-        rescue => e
+        rescue StandardError => e
           Hive.logger.warn("Error with connected device: #{e.message}")
         end
         set_device_status('happy')

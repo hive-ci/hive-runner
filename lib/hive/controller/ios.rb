@@ -1,10 +1,12 @@
+# frozen_string_literal: true
+
 require 'hive/controller'
 require 'hive/worker/ios'
 require 'device_api/ios'
 
 module Hive
   class Controller
-    class Ios < Controller
+    class IOS < Controller
       def detect
         if Hive.hive_mind.device_details.key? :error
           detect_without_hivemind
@@ -26,7 +28,7 @@ module Hive
           Hive.logger.debug("Device details: #{device.inspect}")
           begin
             registered_device = connected_devices.select { |a| a.serial == device['serial'] && a.trusted? }
-          rescue => e
+          rescue StandardError => e
             registered_device = []
           end
 
@@ -57,7 +59,7 @@ module Hive
               to_poll << device['id']
             rescue DeviceAPI::DeviceNotFound => e
               Hive.logger.warn("Device disconnected before registration (serial: #{device['serial']})")
-            rescue => e
+            rescue StandardError => e
               Hive.logger.warn("Error with connected device: #{e.message}")
             end
 
@@ -80,7 +82,7 @@ module Hive
                   macs: [device.wifi_mac_address],
                   brand: 'Apple',
                   model: device.model,
-                  device_type: device.type.capitalize,
+                  device_type: device.type.to_s.capitalize,
                   plugin_type: 'Mobile',
                   imei: device.imei,
                   operating_system_name: 'ios',
@@ -90,11 +92,11 @@ module Hive
                 Hive.logger.info("Device registered: #{dev}")
               rescue DeviceAPI::DeviceNotFound => e
                 Hive.logger.warn("Device disconnected before registration #{e.message}")
-              rescue => e
+              rescue StandardError => e
                 Hive.logger.warn("Error with connected device: #{e.message}")
               end
             end
-          rescue => e
+          rescue StandardError => e
             Hive.logger.debug("Connected Devices: #{connected_devices}")
             Hive.logger.warn(e)
           end
@@ -128,7 +130,7 @@ module Hive
           end
         rescue DeviceAPI::DeviceNotFound => e
           Hive.logger.warn("Device disconnected while fetching device_info #{e.message}")
-        rescue => e
+        rescue StandardError => e
           Hive.logger.warn(e)
         end
 
@@ -143,7 +145,7 @@ module Hive
 
       def get_hivemind_devices
         Hive.hive_mind.device_details['connected_devices'].select do |device|
-          (device['device_type'] == 'Mobile' || device['device_type'] == 'Tablet') && device['operating_system_name'] == 'ios'
+          device['operating_system_name'].casecmp('ios').zero?
         end
       rescue NoMethodError
         # Failed to find connected devices

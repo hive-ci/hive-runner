@@ -2,7 +2,7 @@ require 'hive/device'
 
 module Hive
   class Device
-    class Ios < Device
+    class IOS < Device
       attr_accessor :model, :os_version, :device_type
 
       def initialize(config)

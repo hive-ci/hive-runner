@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'hive'
 require 'hive/port_allocator'
 

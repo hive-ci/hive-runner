@@ -38,12 +38,13 @@ def reset_hive(options = {})
 end
 
 # JSON representations for a device in Hive Mind
-def hm_device(options)
+def hive_mind_device(options)
   id = options[:id] || 1
   {
     id: id,
     device_type: options[:device_type] || 'Mobile',
     operating_system_name: options[:os] || 'android',
+    operating_system_os_name: options[:os_name] || 'Lollipop',
     operating_system_version: options[:os_version] || '1.2.3',
     serial: "serial#{id}",
     model: options[:model] || 'Test Model',
@@ -51,8 +52,8 @@ def hm_device(options)
   }
 end
 
-# Mock a device in Device API
-def adb_device(options)
+# Mock Android Device API
+def android_device(options)
   id = options[:id] || 1
   dev = DeviceAPI::Android::Device.new(
     serial: "serial#{id}",
@@ -60,13 +61,34 @@ def adb_device(options)
     version: options[:os_version] || '1.2.3'
   )
   allow(dev).to receive(:wifi_mac_address) { options[:wifi_mac_addresss] || format('00:11:22:33:44:%02d', id) }
-  allow(dev).to receive(:ip_address) { options[:ip_address] || format('192.168.100.%d', id) }
-  allow(dev).to receive(:manufacturer) { options[:brand] || 'Test Brand' }
-  allow(dev).to receive(:model) { options[:model] || 'Test Model' }
-  allow(dev).to receive(:imei) { options[:imei] || format('123456%d', id) }
-  allow(dev).to receive(:version) { options[:os_version] || '1.2.3' }
-  allow(dev).to receive(:get_device_type) { :default }
+  allow(dev).to receive(:ip_address)       { options[:ip_address] || format('192.168.100.%d', id) }
+  allow(dev).to receive(:manufacturer)     { options[:brand] || 'Test Brand' }
+  allow(dev).to receive(:model)            { options[:model] || 'Test Model' }
+  allow(dev).to receive(:type)             { options[:type] || 'Mobile' }
+  allow(dev).to receive(:imei)             { options[:imei] || format('123456%d', id) }
+  allow(dev).to receive(:version)          { options[:os_version] || '1.2.3' }
+  allow(dev).to receive(:os_name)          { options[:os_name] || 'Lollipop' }
+  allow(dev).to receive(:get_device_type)  { :default }
   dev.instance_variable_set(:@remote, options[:remote] ? true : false)
+  dev
+end
+
+# Mock iOS Device API
+def ios_device(options)
+  id = options[:id] || 1
+  dev = DeviceAPI::IOS::Device.new(
+    serial: "serial#{id}",
+    state: 'device',
+    version: options[:os_version] || '1.2.3'
+  )
+  allow(dev).to receive(:wifi_mac_address) { options[:wifi_mac_addresss] || format('00:11:22:33:44:%02d', id) }
+  allow(dev).to receive(:ip_address)       { options[:ip_address] || format('192.168.100.%d', id) }
+  allow(dev).to receive(:manufacturer)     { options[:brand] || 'Apple' }
+  allow(dev).to receive(:model)            { options[:model] || 'Test Model' }
+  allow(dev).to receive(:type)             { options[:type] || 'Mobile' }
+  allow(dev).to receive(:imei)             { options[:imei] || format('123456%d', id) }
+  allow(dev).to receive(:version)          { options[:os_version] || '1.2.3' }
+  allow(dev).to receive(:get_device_type)  { :default }
   dev
 end
 

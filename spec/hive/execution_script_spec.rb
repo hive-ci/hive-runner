@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 require 'tmpdir'
@@ -26,6 +28,7 @@ describe Hive::ExecutionScript do
 
     let(:es) do
       Hive::ExecutionScript.new(
+        job: 1,
         file_system: fs,
         log: Hive::Log.new,
         keep_running: nil

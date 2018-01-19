@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'yaml'
 
 require 'hive'
@@ -98,7 +100,7 @@ module Hive
         begin
           @current_job_start_time = Time.now
           execute_job
-        rescue => e
+        rescue StandardError => e
           @log.info("Error running test: #{e.message}\n : #{e.backtrace.join("\n :")}")
         end
         cleanup
@@ -137,7 +139,7 @@ module Hive
         Signal.trap('TERM') {} # Prevent retry signals
         @log.info 'Caught TERM signal'
         @log.info 'Terminating script, if running'
-        @script.terminate if @script
+        @script&.terminate
         @log.info 'Post-execution cleanup'
         signal_safe_post_script(@job, @file_system, @script)
 
@@ -159,17 +161,20 @@ module Hive
         set_job_state_to :preparing
 
         unless @job.repository.to_s.empty?
-          @log.info 'Checking out the repository'
-          @log.debug "  #{@job.repository}"
           @log.debug "  #{@file_system.testbed_path}"
-          checkout_code(@job.repository, @file_system.testbed_path, @job.branch)
+
+          env_variables = @job.execution_variables.to_h
+          branch = env_variables.key?('git_branch') ? env_variables['git_branch'].to_s : @job.branch
+
+          checkout_code(@job.repository, @file_system.testbed_path, branch)
         end
 
         @log.info 'Initialising execution script'
         @script = Hive::ExecutionScript.new(
+          job: @job,
           file_system: @file_system,
           log: @log,
-          keep_running: ->() { keep_script_running? }
+          keep_running: -> { keep_script_running? }
         )
         @script.append_bash_cmd "mkdir -p #{@file_system.testbed_path}/#{@job.execution_directory}"
         @script.append_bash_cmd "cd #{@file_system.testbed_path}/#{@job.execution_directory}"
@@ -177,15 +182,13 @@ module Hive
         @log.info 'Setting the execution variables in the environment'
         @script.set_env 'HIVE_RESULTS', @file_system.results_path
         @script.set_env 'HIVE_SCRIPT_ERRORS', @file_system.script_errors_file
-        @job.execution_variables.to_h.each_pair do |var, val|
+
+        env_variables.each_pair do |var, val|
           @script.set_env "HIVE_#{var}".upcase, val unless val.is_a?(Array)
         end
-        if @job.execution_variables.retry_urns && !@job.execution_variables.retry_urns.empty?
-          @script.set_env 'RETRY_URNS', @job.execution_variables.retry_urns
-        end
-        if @job.execution_variables.tests && @job.execution_variables.tests != ['']
-          @script.set_env 'TEST_NAMES', @job.execution_variables.tests
-        end
+
+        @script.set_env 'RETRY_URNS', @job.execution_variables.retry_urns if @job.execution_variables.retry_urns && !@job.execution_variables.retry_urns.empty?
+        @script.set_env 'TEST_NAMES', @job.execution_variables.tests if @job.execution_variables.tests && @job.execution_variables.tests != ['']
 
         @log.info 'Appending test script to execution script'
         @script.append_bash_cmd @job.command
@@ -199,8 +202,9 @@ module Hive
         @log.info 'Running execution script'
         exit_value = @script.run
         @job.end(exit_value)
-      rescue => e
+      rescue StandardError => e
         exception = e
+        @log.error("Error starting job: #{e.backtrace.join("\n  : ")}")
       end
 
       begin
@@ -211,17 +215,17 @@ module Hive
         # Upload results
         @file_system.finalise_results_directory
         upload_results(@job, "#{@file_system.testbed_path}/#{@job.execution_directory}", @file_system.results_path)
-      rescue => e
+      rescue StandardError => e
         @log.error('Post execution failed: ' + e.message)
         @log.error("  : #{e.backtrace.join("\n  : ")}")
       end
 
-      if exception || File.size(@file_system.script_errors_file) > 0
+      if exception || File.zero?(@file_system.script_errors_file)
         set_job_state_to :completed
         begin
           after_error(@job, @file_system, @script)
           upload_files(@job, @file_system.results_path, @file_system.logs_path)
-        rescue => e
+        rescue StandardError => e
           @log.error("Exception while uploading files: #{e.backtrace.join("\n  : ")}")
         end
         if exception
@@ -235,7 +239,7 @@ module Hive
         @job.complete
         begin
           upload_files(@job, @file_system.results_path, @file_system.logs_path)
-        rescue => e
+        rescue StandardError => e
           @log.error("Exception while uploading files: #{e.backtrace.join("\n  : ")}")
         end
       end
@@ -246,7 +250,7 @@ module Hive
       end
 
       set_job_state_to :completed
-      exit_value == 0
+      exit_value.zero?
     end
 
     # Diagnostics function to be extended in child class, as required
@@ -303,7 +307,7 @@ module Hive
           begin
             artifact = job.report_artifact("#{path}/#{item}")
             @log.info("Artifact uploaded: #{artifact.attributes}")
-          rescue => e
+          rescue StandardError => e
             @log.error("Error uploading artifact #{item}: #{e.message}")
             @log.error("  : #{e.backtrace.join("\n  : ")}")
           end
@@ -315,58 +319,61 @@ module Hive
     def upload_results(job, checkout, results_dir)
       res_file = detect_res_file(results_dir) || process_xunit_results(results_dir)
 
-      if res_file
-        @log.info('Res file found')
+      @log.debug('Res file not found') unless res_file
 
-        begin
-          Res.submit_results(
-            reporter: :hive,
-            ir: res_file,
-            job_id: job.job_id
-          )
-        rescue => e
-          @log.warn("Res Hive upload failed #{e.message}")
-        end
+      @log.info('Res file found')
 
-        begin
-          if conf_file = testmine_config(checkout)
-            Res.submit_results(
-              reporter: :testmine,
-              ir: res_file,
-              config_file: conf_file,
-              hive_job_id: job.job_id,
-              version: job.execution_variables.version,
-              target: job.execution_variables.queue_name,
-              cert: Chamber.env.network.cert,
-              cacert: Chamber.env.network.cafile,
-              ssl_verify_mode: Chamber.env.network.verify_mode
-            )
-          end
-        rescue => e
-          @log.warn("Res Testmine upload failed #{e.message}")
-        end
+      test_mine_config_file = testmine_config(checkout)
+      lion_config_file      = lion_config(checkout)
 
-        begin
-            if conf_file = lion_config(checkout)
-              Res.submit_results(
-                reporter: :lion,
-                ir: res_file,
-                config_file: conf_file,
-                hive_job_id: job.job_id,
-                version: job.execution_variables.version,
-                target: job.execution_variables.queue_name,
-                cert: Chamber.env.network.cert,
-                cacert: Chamber.env.network.cafile,
-                ssl_verify_mode: Chamber.env.network.verify_mode
-              )
-            end
-          rescue => e
-            @log.warn("Res Lion upload failed #{e.message}")
-          end
-
-        # TODO: Add in Testrail upload
-
+      begin
+        Res.submit_results(
+          reporter: :hive,
+          ir: res_file,
+          job_id: job.job_id
+        )
+      rescue StandardError => e
+        @log.warn("Res Hive upload failed #{e.message}")
       end
+
+      begin
+        if test_mine_config_file
+          @log.debug("Res options: \n Job ID: #{job.job_id} \n Queue Name: #{job.execution_variables.queue_name}")
+          Res.submit_results(
+            reporter: :testmine,
+            ir: res_file,
+            config_file: test_mine_config_file,
+            hive_job_id: job.job_id,
+            version: job.execution_variables.version,
+            target: job.execution_variables.queue_name,
+            cert: Chamber.env.network.cert,
+            cacert: Chamber.env.network.cafile,
+            ssl_verify_mode: Chamber.env.network.verify_mode
+          )
+        end
+      rescue StandardError => e
+        @log.warn("Res Testmine upload failed #{e.message}")
+      end
+
+      begin
+        if lion_config_file
+          Res.submit_results(
+            reporter: :lion,
+            ir: res_file,
+            config_file: line_config_file,
+            hive_job_id: job.job_id,
+            version: job.execution_variables.version,
+            target: job.execution_variables.queue_name,
+            cert: Chamber.env.network.cert,
+            cacert: Chamber.env.network.cafile,
+            ssl_verify_mode: Chamber.env.network.verify_mode
+          )
+        end
+      rescue StandardError => e
+        @log.warn("Res Lion upload failed #{e.message}")
+      end
+
+      # TODO: Add in Testrail upload
     end
 
     def detect_res_file(results_dir)
@@ -374,20 +381,21 @@ module Hive
     end
 
     def process_xunit_results(results_dir)
-      unless Dir.glob("#{results_dir}/*.xml").empty?
-        xunit_output = Res.parse_results(parser: :junit, file: Dir.glob("#{results_dir}/*.xml").first)
-        res_output = File.open(xunit_output.io, 'rb')
-        contents = res_output.read
-        res_output.close
-        res = File.open("#{results_dir}/xunit.res", 'w+')
-        res.puts contents
-        res.close
-        res
-      end
+      return if Dir.glob("#{results_dir}/*.xml").empty?
+
+      xunit_output = Res.parse_results(parser: :junit, file: Dir.glob("#{results_dir}/*.xml").first)
+      res_output   = File.open(xunit_output.io, 'rb')
+      contents     = res_output.read
+
+      res_output.close
+      res = File.open("#{results_dir}/xunit.res", 'w+')
+      res.puts contents
+      res.close
+      res
     end
 
     def testmine_config(checkout)
-      Dir.glob("#{checkout}/.testmi{n,t}e.yml").first
+      Dir.glob("#{checkout}/.testmine.yml").first
     end
 
     def lion_config(checkout)
@@ -396,7 +404,17 @@ module Hive
 
     # Get a checkout of the repository
     def checkout_code(repository, checkout_directory, branch)
-      CodeCache.repo(repository).checkout(:head, checkout_directory, branch) || raise("Unable to checkout repository #{repository}")
+      @log.info 'Checking out the repository'
+      repo = CodeCache.repo(repository)
+      begin
+        @log.debug "  #{repository} \n #{branch}"
+        repo.checkout(:head, checkout_directory, branch)
+      rescue StandardError => e
+        message = "Unable to checkout repository #{repository} using #{branch}"
+
+        @log.warn("#{message}: #{e.backtrace.join("\n  : ")}")
+        raise("#{message}: #{e.message}")
+      end
     end
 
     # Keep the worker process running
@@ -413,7 +431,7 @@ module Hive
     # Keep the execution script running
     def keep_script_running?
       @log.debug('Keep Running check ')
-      if exceeded_time_limit? || parent_process_dead? || File.size(@file_system.script_errors_file) > 0
+      if exceeded_time_limit? || parent_process_dead? || File.size(@file_system.script_errors_file).positive?
         return false
       else
         return true
@@ -424,7 +442,7 @@ module Hive
       if @job && !@job.nil?
         if max_time = begin
                         @job.execution_variables.job_timeout
-                      rescue
+                      rescue StandardError
                         nil
                       end
           elapsed = (Time.now - @current_job_start_time).to_i
@@ -441,7 +459,7 @@ module Hive
     def parent_process_dead?
       Process.getpgid(@parent_pid)
       false
-    rescue
+    rescue StandardError
       @log.warn('Parent process appears to have terminated')
       true
     end
