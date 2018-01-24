@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Hive
   class DiagnosticRunner
     attr_accessor :diagnostics, :options

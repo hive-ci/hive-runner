@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'fileutils'
 
 module Hive
@@ -79,7 +81,7 @@ module Hive
     def copy_file(src, dest)
       FileUtils.cp(src, dest)
       @log.debug("Copied file #{src} -> #{dest}")
-    rescue => e
+    rescue StandardError => e
       @log.error(e.message)
     end
 
@@ -87,7 +89,7 @@ module Hive
       FileUtils.rm_r(directory) if File.directory?(directory)
       FileUtils.mkdir_p(directory)
       @log.debug("Created directory: #{directory}")
-    rescue => e
+    rescue StandardError => e
       @log.fatal(e.message)
     end
   end

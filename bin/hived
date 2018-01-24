@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
 
 require 'pathname'
 ENV['BUNDLE_GEMFILE'] ||= File.expand_path(
@@ -28,8 +29,11 @@ def test(app)
   server.close
 end
 
-Daemons.run(File.expand_path('..', __FILE__) + '/start_hive',
-            show_status_callback: :test,
-            log_dir: Hive.config.logging.directory,
-            log_output: true,
-            output_logfilename: 'hived.out')
+options = {
+  show_status_callback: :test,
+  log_dir: Hive.config.logging.directory,
+  log_output: true,
+  output_logfilename: 'hived.out'
+}
+
+Daemons.run(File.expand_path('..', __FILE__) + '/start_hive', options)

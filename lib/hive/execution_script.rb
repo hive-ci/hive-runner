@@ -1,16 +1,22 @@
+# frozen_string_literal: true
+
 require 'timeout'
 
 module Hive
   class ExecutionScript
     def initialize(config)
-      @path = config[:file_system].executed_script_path
-      @log_path = config[:file_system].logs_path
-      @log = config[:log]
+      @job          = config[:job]
+      @file_system  = config[:file_system]
+      @log          = config[:log]
       @keep_running = config[:keep_running]
+
+      @path         = @file_system.executed_script_path
+      @log_path     = @file_system.logs_path
+
       @log.debug "Creating execution script with path=#{@path}"
       @env = {
         'HIVE_SCHEDULER' => Hive.config.network.scheduler,
-        'HIVE_WORKING_DIRECTORY' => config[:file_system].testbed_path
+        'HIVE_WORKING_DIRECTORY' => @file_system.testbed_path
       }
       @env_unset = %w[
         BUNDLE_GEMFILE
@@ -99,11 +105,18 @@ module Hive
             running = false
           end
         rescue Timeout::Error
-          @log.debug('Sub-process keep_running check')
+          @log.debug('Sub-process keep_running check & upload logs')
           unless @keep_running.nil? || @keep_running.call
             Process.kill(-9, @pgid)
             raise 'Script terminated. Check worker logs for more details'
           end
+
+          begin
+            Worker.upload_files(@job, @file_system.results_path, @log_path)
+          rescue StandardError => e
+            @log.error("Exception while uploading files: #{e.backtrace.join("\n  : ")}")
+          end
+
           # TODO: Upload in-progress script logs
         end
       end
@@ -116,17 +129,17 @@ module Hive
     end
 
     def terminate
-      if @pgid
-        begin
-          @log.debug "Ensuring process #{@pgid} is terminated"
-          Process.kill(-9, @pgid)
-        rescue Errno::ESRCH
-          @log.debug "Process #{@pgid} already dead"
-        rescue => e
-          @log.warn "Unexpected error while terminating process #{@pgid}: #{e}"
-        end
-        @pgid = nil
+      return unless @pgid
+
+      begin
+        @log.debug "Ensuring process #{@pgid} is terminated"
+        Process.kill(-9, @pgid)
+      rescue Errno::ESRCH
+        @log.debug "Process #{@pgid} already dead"
+      rescue StandardError => e
+        @log.warn "Unexpected error while terminating process #{@pgid}: #{e}"
       end
+      @pgid = nil
     end
   end
 end

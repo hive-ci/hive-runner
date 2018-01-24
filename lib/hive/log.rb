@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'mono_logger'
 
 module Hive

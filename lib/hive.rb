@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'chamber'
 require 'hive/log'
 require 'hive/register'
@@ -20,27 +22,21 @@ module Hive
       environment: ENV['HIVE_ENVIRONMENT'] || 'test'
     }
   )
+
+  raise 'Missing logging section in configuration file' unless Chamber.env.logging?
+
+  raise 'Missing log directory' unless Chamber.env.logging.directory?
+
   DAEMON_NAME ||= Chamber.env.daemon_name? ? Chamber.env.daemon_name : 'HIVE'
 
-  if Chamber.env.logging?
-    if Chamber.env.logging.directory?
-      LOG_DIRECTORY ||= File.expand_path Chamber.env.logging.directory
-    else
-      raise 'Missing log directory'
-    end
-    PIDS_DIRECTORY ||= if Chamber.env.logging.pids?
-                         File.expand_path Chamber.env.logging.pids
-                       else
-                         LOG_DIRECTORY
-                       end
-  else
-    raise 'Missing logging section in configuration file'
-  end
+  LOG_DIRECTORY ||= File.expand_path(Chamber.env.logging.directory)
+
+  PIDS_DIRECTORY ||= Chamber.env.logging.pids? ? File.expand_path(Chamber.env.logging.pids) : LOG_DIRECTORY
 
   if Chamber.env.key?('errbit')
     Airbrake.configure do |config|
-      config.host = Chamber.env.errbit.host
-      config.project_id = Chamber.env.errbit.project_id
+      config.host        = Chamber.env.errbit.host
+      config.project_id  = Chamber.env.errbit.project_id
       config.project_key = Chamber.env.errbit.project_key
     end
   end
@@ -56,9 +52,7 @@ module Hive
       if Hive.config.logging.main_filename?
         @logger.add_logger("#{LOG_DIRECTORY}/#{Hive.config.logging.main_filename}", Chamber.env.logging.main_level? ? Chamber.env.logging.main_level : 'INFO')
       end
-      if Hive.config.logging.console_level?
-        @logger.add_logger(STDOUT, Hive.config.logging.console_level)
-      end
+      @logger.add_logger(STDOUT, Hive.config.logging.console_level) if Hive.config.logging.console_level?
 
       @logger.default_progname = 'Hive core'
     end
