@@ -36,7 +36,10 @@ module Hive
       controller_details&.each do |type, opts|
         Hive.logger.info("Adding controller for '#{type}'")
         require "hive/controller/#{type}"
-        controller = Object.const_get('Hive').const_get('Controller').const_get(type.capitalize).new(opts.to_hash)
+
+        runner_type = type.casecmp('ios').zero? ? type.upcase : type.capitalize
+        controller  = Object.const_get('Hive').const_get('Controller').const_get(runner_type).new(opts.to_hash)
+
         @controllers << controller
       end
       check_controllers
