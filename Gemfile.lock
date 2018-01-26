@@ -1,6 +1,6 @@
 GIT
   remote: git@github.com:hive-ci/device_api-android.git
-  revision: 3e925d654b64a96ca50c4e1816b15f695a04f7d7
+  revision: e18c234c4c952308eda28f8bb95f94bf7ecd1b57
   specs:
     device_api-android (1.2.20)
       device_api (~> 1.0.2)
@@ -57,7 +57,7 @@ GEM
       ice_nine (~> 0.11.0)
       thread_safe (~> 0.3, >= 0.3.1)
     builder (3.2.3)
-    chamber (2.12.1)
+    chamber (2.12.2)
       hashie (~> 3.3)
       thor (>= 0.19.1, < 0.21)
     code_cache (0.2.3)
@@ -90,14 +90,14 @@ GEM
       multipart-post (~> 2.0)
       roar (~> 1.0)
       virtus (~> 1.0)
-    i18n (0.9.1)
+    i18n (0.9.3)
       concurrent-ruby (~> 1.0)
     ice_nine (0.11.2)
     json (1.8.6)
     mimemagic (0.3.2)
     mind_meld (0.1.12)
       activesupport (~> 4)
-    minitest (5.11.1)
+    minitest (5.11.2)
     mono_logger (1.1.0)
     multi_json (1.13.1)
     multipart-post (2.0.0)
