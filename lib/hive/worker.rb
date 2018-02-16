@@ -46,10 +46,12 @@ module Hive
 
       @device_identity = @options['device_identity'] || 'unknown-device'
       pid = Process.pid
-      $PROGRAM_NAME = "#{@options['name_stub'] || 'WORKER'}.#{pid}"
+      $PROGRAM_NAME    = "#{@options['name_stub'] || 'WORKER'}.#{pid}"
+      @device_log_file = "#{LOG_DIRECTORY}/#{pid}.#{@device_identity}.log"
+
       @log = Hive::Log.new
       @log.add_logger(
-        "#{LOG_DIRECTORY}/#{pid}.#{@device_identity}.log",
+        @device_log_file,
         Hive.config.logging.worker_level || 'INFO'
       )
       @log.hive_mind        = @hive_mind
@@ -145,7 +147,7 @@ module Hive
 
         # Upload results
         @file_system.finalise_results_directory
-        upload_files(@job, @file_system.results_path, @file_system.logs_path)
+        upload_files(@job, @file_system.results_path, @file_system.logs_path, @device_log_file)
         set_job_state_to :completed
         @job.error('Worker killed')
         @log.info 'Worker terminated'
@@ -214,7 +216,7 @@ module Hive
 
         # Upload results
         @file_system.finalise_results_directory
-        upload_results(@job, "#{@file_system.testbed_path}/#{@job.execution_directory}", @file_system.results_path)
+        upload_results(@job, "#{@file_system.testbed_path}/#{@job.execution_directory}", @file_system.results_path, @device_log_file)
       rescue StandardError => e
         @log.error('Post execution failed: ' + e.message)
         @log.error("  : #{e.backtrace.join("\n  : ")}")
