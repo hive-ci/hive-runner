@@ -147,7 +147,8 @@ module Hive
 
         # Upload results
         @file_system.finalise_results_directory
-        upload_files(@job, @file_system.results_path, @file_system.logs_path, @device_log_file)
+
+        upload_files(@job, @file_system.results_path, @file_system.logs_path)
         set_job_state_to :completed
         @job.error('Worker killed')
         @log.info 'Worker terminated'
@@ -216,7 +217,9 @@ module Hive
 
         # Upload results
         @file_system.finalise_results_directory
-        upload_results(@job, "#{@file_system.testbed_path}/#{@job.execution_directory}", @file_system.results_path, @device_log_file)
+        @file_system.finalise_device_log(@device_log_file)
+
+        upload_results(@job, "#{@file_system.testbed_path}/#{@job.execution_directory}", @file_system.results_path)
       rescue StandardError => e
         @log.error('Post execution failed: ' + e.message)
         @log.error("  : #{e.backtrace.join("\n  : ")}")

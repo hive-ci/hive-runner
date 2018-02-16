@@ -45,6 +45,11 @@ module Hive
       copy_file(executed_script_path, "#{results_path}/executed_script.sh")
     end
 
+    # Copy device logs to the logs directory
+    def finalise_device_log(device_log_path)
+      copy_file(device_log_path, "#{results_path}/device_log.log")
+    end
+
     def fetch_build(build_url, destination_path)
       base_url      = Hive.config.network['scheduler']
       apk_url       = base_url + '/' + build_url
