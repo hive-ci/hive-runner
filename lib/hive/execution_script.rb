@@ -110,13 +110,6 @@ module Hive
             Process.kill(-9, @pgid)
             raise 'Script terminated. Check worker logs for more details'
           end
-
-          begin
-            Worker.upload_files(@job, @file_system.results_path, @log_path)
-          rescue StandardError => e
-            @log.error("Exception while uploading files: #{e.backtrace.join("\n  : ")}")
-          end
-
           # TODO: Upload in-progress script logs
         end
       end
