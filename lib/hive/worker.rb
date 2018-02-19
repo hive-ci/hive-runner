@@ -166,10 +166,14 @@ module Hive
         unless @job.repository.to_s.empty?
           @log.debug "  #{@file_system.testbed_path}"
 
-          env_variables = @job.execution_variables.to_h
-          branch = env_variables.key?('git_branch') ? env_variables['git_branch'].to_s : @job.branch
+          environment_variables = @job.execution_variables.to_h
+          branch = environment_variables[:git_branch]
 
-          checkout_code(@job.repository, @file_system.testbed_path, branch)
+          @log.debug "environment variables:  #{environment_variables.inspect}"
+
+          @branch_name = branch.nil? || branch.to_s.empty? ? @job.branch : branch
+
+          checkout_code(@job.repository, @file_system.testbed_path, @branch_name.to_s)
         end
 
         @log.info 'Initialising execution script'
@@ -186,7 +190,7 @@ module Hive
         @script.set_env 'HIVE_RESULTS', @file_system.results_path
         @script.set_env 'HIVE_SCRIPT_ERRORS', @file_system.script_errors_file
 
-        env_variables.each_pair do |var, val|
+        @job.execution_variables.to_h.each_pair do |var, val|
           @script.set_env "HIVE_#{var}".upcase, val unless val.is_a?(Array)
         end
 
@@ -225,7 +229,10 @@ module Hive
         @log.error("  : #{e.backtrace.join("\n  : ")}")
       end
 
-      if exception || File.zero?(@file_system.script_errors_file)
+      script_errors_file_size = File.size(@file_system.script_errors_file).positive?
+
+      if !exception.nil? || script_errors_file_size
+        @log.error("Errors Found: \n #{exception.inspect} \n Is Error File Size greater then zero:#{script_errors_file_size}")
         set_job_state_to :completed
         begin
           after_error(@job, @file_system, @script)
@@ -341,8 +348,8 @@ module Hive
         @log.warn("Res Hive upload failed #{e.message}")
       end
 
-      begin
-        if test_mine_config_file
+      if test_mine_config_file
+        begin
           @log.debug("Res options: \n Job ID: #{job.job_id} \n Queue Name: #{job.execution_variables.queue_name}")
           Res.submit_results(
             reporter: :testmine,
@@ -355,13 +362,13 @@ module Hive
             cacert: Chamber.env.network.cafile,
             ssl_verify_mode: Chamber.env.network.verify_mode
           )
+        rescue StandardError => e
+          @log.warn("Res Testmine upload failed #{e.message}")
         end
-      rescue StandardError => e
-        @log.warn("Res Testmine upload failed #{e.message}")
       end
 
-      begin
-        if lion_config_file
+      if lion_config_file
+        begin
           Res.submit_results(
             reporter: :lion,
             ir: res_file,
@@ -373,9 +380,9 @@ module Hive
             cacert: Chamber.env.network.cafile,
             ssl_verify_mode: Chamber.env.network.verify_mode
           )
+        rescue StandardError => e
+          @log.warn("Res Lion upload failed #{e.message}")
         end
-      rescue StandardError => e
-        @log.warn("Res Lion upload failed #{e.message}")
       end
 
       # TODO: Add in Testrail upload
