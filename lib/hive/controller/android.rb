@@ -89,7 +89,6 @@ module Hive
                   plugin_type: 'Mobile',
                   imei: device.imei,
                   operating_system_name: 'android',
-                  operating_system_code_name: device.os_name,
                   operating_system_version: device.version
                 )
                 Hive.hive_mind.connect(dev['id'])
