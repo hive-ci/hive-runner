@@ -27,7 +27,7 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency 'mono_logger', '~> 1.1'
 
   s.add_runtime_dependency 'device_api-android', '~> 1.0', '>= 1.2.9'
-  s.add_runtime_dependency 'device_api-ios', '~> 1.1.0'
+  s.add_runtime_dependency 'device_api-ios', '~> 1.2.0'
   s.add_runtime_dependency 'fruity_builder', '~> 1.1.0'
   s.add_runtime_dependency 'hive-messages', '>= 1.0.7'
   s.add_runtime_dependency 'mind_meld', '~> 0.1.12'

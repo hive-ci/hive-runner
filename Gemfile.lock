@@ -7,9 +7,9 @@ GIT
 
 GIT
   remote: git@github.com:hive-ci/device_api-ios.git
-  revision: b20c12b2f69ba6defb2959adf77bdb628703cddb
+  revision: dd54af24a022053b2a35b799085a58d64a001bd5
   specs:
-    device_api-ios (1.1.0)
+    device_api-ios (1.2.0)
       device_api (>= 1.0, < 2.0)
       ox (~> 2.8)
 
@@ -23,7 +23,7 @@ PATH
       code_cache (~> 0.2)
       daemons (~> 1.2.6)
       device_api-android (~> 1.0, >= 1.2.9)
-      device_api-ios (~> 1.1.0)
+      device_api-ios (~> 1.2.0)
       fruity_builder (~> 1.1.0)
       hive-messages (>= 1.0.7)
       mind_meld (~> 0.1.12)
@@ -94,7 +94,7 @@ GEM
       concurrent-ruby (~> 1.0)
     ice_nine (0.11.2)
     json (1.8.6)
-    mimemagic (0.3.2)
+    mimemagic (0.3.3)
     mind_meld (0.1.12)
       activesupport (~> 4)
     minitest (5.11.3)
